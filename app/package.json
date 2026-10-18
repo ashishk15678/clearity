@@ -6,10 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
   },
   "dependencies": {
+    "better-auth": "^1.7.10",
+    "better-sqlite3": "^13.0.3",
     "next": "16.4.2",
+    "prisma": "^8.0.0-rc.23",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
