@@ -1,11 +1,9 @@
 import "dotenv/config";
-import { definePrismaConfig } from "prisma/config";
+import { defineConfig } from "prisma/config";
 
-export default definePrismaConfig({
-  orm: {
-    schema: "./prisma/schema.prisma",
-    db: {
-      connection: process.env.DATABASE_URL,
-    },
+export default defineConfig({
+  schema: "./prisma/schema.prisma",
+  datasource: {
+    url: process.env.DATABASE_URL,
   },
 });
