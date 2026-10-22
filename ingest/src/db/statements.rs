@@ -1,50 +1,63 @@
-pub type STATEMENT = &'static str;
+// ─── Event inserts ────────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone)]
-pub enum QueryParam {
-    Integer(i64),
-    Float(f64),
-    Text(String),
-    Boolean(bool),
-}
+pub static INSERT_EVENT: &str = r#"
+INSERT INTO event (id, type, name, properties, url, sessionId, userId, ipAddress, userAgent, createdAt, projectId)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?)
+"#;
 
-#[derive(Debug, PartialEq)]
-pub enum QueryBuildError {
-    PlaceholderMismatch { expected: usize, found: usize },
-}
+// ─── PageView inserts ─────────────────────────────────────────────────────────
 
-/// Safely replaces multiple '?' placeholders in a SQL statement with sequential, sanitized parameters.
-pub fn safe_replace_many(
-    statement: STATEMENT,
-    params: &[QueryParam],
-) -> Result<String, QueryBuildError> {
-    let expected_placeholders = statement.matches('?').count();
-    if expected_placeholders != params.len() {
-        return Err(QueryBuildError::PlaceholderMismatch {
-            expected: expected_placeholders,
-            found: params.len(),
-        });
-    }
+pub static INSERT_PAGE_VIEW: &str = r#"
+INSERT INTO page_view (id, url, referrer, sessionId, userId, ipAddress, userAgent, duration, createdAt, projectId)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?)
+"#;
 
-    let mut result = statement.to_string();
+// ─── Event queries ────────────────────────────────────────────────────────────
 
-    for param in params {
-        let escaped_value = match param {
-            QueryParam::Integer(val) => val.to_string(),
-            QueryParam::Float(val) => val.to_string(),
-            QueryParam::Boolean(val) => val.to_string().to_uppercase(),
-            QueryParam::Text(val) => {
-                let sanitized = val.replace("'", "''");
-                format!("'{}'", sanitized)
-            }
-        };
+pub static COUNT_EVENTS: &str = r#"
+SELECT COUNT(*) as count
+FROM event
+WHERE projectId = ? AND createdAt >= datetime('now', ?)
+"#;
 
-        result = result.replacen("?", &escaped_value, 1);
-    }
+pub static EVENTS_BY_NAME: &str = r#"
+SELECT name, COUNT(*) as count
+FROM event
+WHERE projectId = ? AND createdAt >= datetime('now', ?)
+GROUP BY name
+ORDER BY count DESC
+LIMIT ?
+"#;
 
-    Ok(result)
-}
+pub static RECENT_EVENTS: &str = r#"
+SELECT id, type, name, properties, url, sessionId, userId, createdAt, projectId
+FROM event
+WHERE projectId = ? AND createdAt >= datetime('now', ?)
+ORDER BY createdAt DESC
+LIMIT ?
+"#;
 
-pub static CHECK: STATEMENT = "SELECT 1";
-pub static USERS: STATEMENT = "SELECT * FROM USER";
-pub static USER_BY_ID: STATEMENT = "select * from user where id = ?";
+// ─── PageView queries ─────────────────────────────────────────────────────────
+
+pub static COUNT_PAGE_VIEWS: &str = r#"
+SELECT COUNT(*) as count
+FROM page_view
+WHERE projectId = ? AND createdAt >= datetime('now', ?)
+"#;
+
+pub static PAGE_VIEWS_BY_URL: &str = r#"
+SELECT url, COUNT(*) as count
+FROM page_view
+WHERE projectId = ? AND createdAt >= datetime('now', ?)
+GROUP BY url
+ORDER BY count DESC
+LIMIT ?
+"#;
+
+pub static RECENT_PAGE_VIEWS: &str = r#"
+SELECT id, url, referrer, sessionId, userId, duration, createdAt, projectId
+FROM page_view
+WHERE projectId = ? AND createdAt >= datetime('now', ?)
+ORDER BY createdAt DESC
+LIMIT ?
+"#;

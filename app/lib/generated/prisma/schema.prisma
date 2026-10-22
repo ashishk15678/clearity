@@ -13,11 +13,14 @@ model User {
   email         String   @unique
   emailVerified Boolean
   image         String?
-  createdAt     DateTime
-  updatedAt     DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  sessions Session[]
-  accounts Account[]
+  sessions           Session[]
+  accounts           Account[]
+  ownedOrganizations Organization[]       @relation("OrgOwner")
+  memberships        OrganizationMember[]
+  sentInvites        Invite[]             @relation("SentInvites")
 
   @@map("user")
 }
@@ -26,8 +29,8 @@ model Session {
   id        String   @id
   expiresAt DateTime
   token     String   @unique
-  createdAt DateTime
-  updatedAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   ipAddress String?
   userAgent String?
   userId    String
@@ -49,8 +52,8 @@ model Account {
   refreshTokenExpiresAt DateTime?
   scope                 String?
   password              String?
-  createdAt             DateTime
-  updatedAt             DateTime
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   @@map("account")
 }
@@ -60,8 +63,295 @@ model Verification {
   identifier String
   value      String
   expiresAt  DateTime
-  createdAt  DateTime?
-  updatedAt  DateTime?
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
 
   @@map("verification")
+}
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  url         String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  ownerId  String
+  owner    User                 @relation("OrgOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members  OrganizationMember[]
+  projects Project[]
+  teams    Team[]
+  invites  Invite[]
+
+  @@map("organization")
+}
+
+model OrganizationMember {
+  id             String       @id @default(cuid())
+  /// "OWNER" | "ADMIN" | "MEMBER" | "VIEWER"
+  role           String       @default("MEMBER")
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+
+  teamMembers TeamMember[]
+
+  @@unique([organizationId, userId])
+  @@map("organization_member")
+}
+
+// ─── Teams ────────────────────────────────────────────────────────────────────
+
+model Team {
+  id             String       @id @default(cuid())
+  name           String
+  description    String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  members TeamMember[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@map("team")
+}
+
+model TeamMember {
+  id       String             @id @default(cuid())
+  /// "LEAD" | "MEMBER"
+  role     String             @default("MEMBER")
+  teamId   String
+  team     Team               @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  /// FK into org_member to enforce team members must be org members
+  memberId String
+  member   OrganizationMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  joinedAt DateTime           @default(now())
+
+  @@unique([teamId, memberId])
+  @@map("team_member")
+}
+
+// ─── Invites ──────────────────────────────────────────────────────────────────
+
+model Invite {
+  id             String       @id @default(cuid())
+  email          String
+  /// "OWNER" | "ADMIN" | "MEMBER" | "VIEWER"
+  role           String       @default("MEMBER")
+  token          String       @unique @default(cuid())
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdAt      DateTime     @default(now())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedById    String
+  invitedBy      User         @relation("SentInvites", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([token])
+  @@map("invite")
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String
+  description String?
+  url         String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  apiKeys           ApiKey[]
+  events            Event[]
+  pageViews         PageView[]
+  sessionRecordings SessionRecording[]
+  errorGroups       ErrorGroup[]
+  errorEvents       ErrorEvent[]
+
+  /// Project slug only needs to be unique inside its parent Organization
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@map("project")
+}
+
+model ApiKey {
+  id         String    @id @default(uuid())
+  name       String
+  /// Store SHA-256 hash of the key; keep `prefix` for UI display (e.g. "pk_live_1234...")
+  key        String    @unique
+  prefix     String
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
+  revokedAt  DateTime?
+  projectId  String
+  project    Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("api_key")
+}
+
+// ─── Session Recordings (Clarity Core) ───────────────────────────────────────
+
+model SessionRecording {
+  id         String  @id @default(uuid())
+  visitorId  String // Persistent anonymous ID from localStorage/cookie
+  userId     String? // Optional identified user ID (via clarity.identify())
+  startUrl   String
+  exitUrl    String?
+  userAgent  String?
+  ipAddress  String?
+  country    String?
+  deviceType String? // "desktop" | "mobile" | "tablet"
+  os         String?
+  browser    String?
+  viewportW  Int?
+  viewportH  Int?
+  duration   Int     @default(0) // ms, updated on flush
+
+  // Clarity-style behavioral heuristics for filtering interesting sessions
+  clickCount     Int @default(0)
+  rageClickCount Int @default(0)
+  deadClickCount Int @default(0)
+  errorCount     Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  chunks      SessionRecordingChunk[]
+  events      Event[]
+  pageViews   PageView[]
+  errorEvents ErrorEvent[]
+
+  @@index([projectId, createdAt])
+  @@index([projectId, visitorId])
+  @@index([projectId, rageClickCount])
+  @@map("session_recording")
+}
+
+/// Append-only chunks prevent rewriting multi-megabyte JSON blobs on every SDK flush
+model SessionRecordingChunk {
+  id          String           @id @default(uuid())
+  recordingId String
+  recording   SessionRecording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+  sequence    Int // 0, 1, 2... order of chunk arrival
+  framesCount Int              @default(0)
+  frames      String // JSON string of rrweb events for this batch only
+  createdAt   DateTime         @default(now())
+
+  @@unique([recordingId, sequence])
+  @@index([recordingId])
+  @@map("session_recording_chunk")
+}
+
+// ─── Ingest / Tracking (Heatmaps & Custom Events) ────────────────────────────
+
+model Event {
+  id         String  @id @default(uuid())
+  type       String // "custom" | "click" | "rage_click" | "dead_click" | "scroll"
+  name       String
+  properties String  @default("{}") // JSON blob
+  url        String?
+
+  // Coordinates & selector for Clarity-style Click Heatmaps
+  selector String?
+  x        Int? // Relative X % or px
+  y        Int? // Relative Y % or px
+
+  visitorId String?
+  userId    String?
+  createdAt DateTime @default(now())
+
+  projectId   String
+  project     Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  recordingId String?
+  recording   SessionRecording? @relation(fields: [recordingId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, createdAt])
+  @@index([projectId, type, url]) // Fast query for Heatmap rendering per URL
+  @@index([recordingId])
+  @@map("event")
+}
+
+model PageView {
+  id         String   @id @default(uuid())
+  url        String
+  path       String // e.g. "/pricing" (easier to group than full URL with query params)
+  referrer   String?
+  visitorId  String?
+  userId     String?
+  duration   Int? // ms spent on page
+  maxScrollY Int? // Percentage (0-100) for Scroll Heatmaps
+  createdAt  DateTime @default(now())
+
+  projectId   String
+  project     Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  recordingId String?
+  recording   SessionRecording? @relation(fields: [recordingId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, createdAt])
+  @@index([projectId, path])
+  @@index([recordingId])
+  @@map("page_view")
+}
+
+// ─── Error Tracking ──────────────────────────────────────────────────────────
+
+/// Deduplicated Error Issue (Grouped by fingerprint)
+model ErrorGroup {
+  id          String    @id @default(uuid())
+  fingerprint String
+  message     String
+  type        String // "error" | "unhandledrejection"
+  status      String    @default("unresolved") // "unresolved" | "resolved" | "ignored"
+  occurrences Int       @default(1)
+  firstSeenAt DateTime  @default(now())
+  lastSeenAt  DateTime  @default(now())
+  resolvedAt  DateTime?
+
+  projectId String
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  events    ErrorEvent[]
+
+  @@unique([projectId, fingerprint])
+  @@index([projectId, status, lastSeenAt])
+  @@map("error_group")
+}
+
+/// Individual Error Crash Occurrence (Linked to the exact Session Recording)
+model ErrorEvent {
+  id          String   @id @default(uuid())
+  message     String
+  stack       String?
+  url         String?
+  line        Int?
+  col         Int?
+  userAgent   String?
+  ipAddress   String?
+  visitorId   String?
+  breadcrumbs String   @default("[]") // JSON blob
+  createdAt   DateTime @default(now())
+
+  groupId     String
+  group       ErrorGroup        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  projectId   String
+  project     Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  recordingId String?
+  recording   SessionRecording? @relation(fields: [recordingId], references: [id], onDelete: SetNull)
+
+  @@index([groupId, createdAt])
+  @@index([projectId, createdAt])
+  @@index([recordingId])
+  @@map("error_event")
 }

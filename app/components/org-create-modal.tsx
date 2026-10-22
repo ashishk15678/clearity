@@ -1,0 +1,124 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "@/trpc/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Building2 } from "lucide-react";
+
+export function OrgCreateModal() {
+  const router = useRouter();
+  const trpc = useTRPC();
+  const qc = useQueryClient();
+
+  const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
+  const [slugTouched, setSlugTouched] = useState(false);
+
+  const create = useMutation(
+    trpc.org.create.mutationOptions({
+      onSuccess: (org) => {
+        qc.invalidateQueries({ queryKey: trpc.org.list.queryKey() });
+        router.push(`/console/${org.slug}`);
+      },
+    }),
+  );
+
+  const handleNameChange = (v: string) => {
+    setName(v);
+    if (!slugTouched) {
+      setSlug(
+        v
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, ""),
+      );
+    }
+  };
+
+  const handleSlugChange = (v: string) => {
+    setSlugTouched(true);
+    setSlug(v.toLowerCase().replace(/[^a-z0-9-]/g, ""));
+  };
+
+  return (
+    <div className="w-full max-w-md rounded-2xl bg-card border border-border shadow-xl p-8 space-y-6">
+      {/* Icon + heading */}
+      <div className="flex flex-col items-center text-center gap-3">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+          <Building2 className="h-7 w-7 text-primary" />
+        </div>
+        <div>
+          <h1 className="text-xl font-semibold text-foreground">
+            Create your organization
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground max-w-xs">
+            An organization is your workspace for projects, analytics, and your
+            team.
+          </p>
+        </div>
+      </div>
+
+      {/* Form */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!name || !slug) return;
+          create.mutate({ name, slug });
+        }}
+        className="space-y-4"
+      >
+        {create.error && (
+          <p className="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            {create.error.message}
+          </p>
+        )}
+
+        <div className="space-y-1.5">
+          <Label htmlFor="org-name">Organization name</Label>
+          <Input
+            id="org-name"
+            placeholder="Acme Corp"
+            value={name}
+            onChange={(e) => handleNameChange(e.target.value)}
+            autoFocus
+            required
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="org-slug">Slug</Label>
+          <div className="relative">
+            <Input
+              id="org-slug"
+              placeholder="acme"
+              value={slug}
+              onChange={(e) => handleSlugChange(e.target.value)}
+              className="font-mono pr-28"
+              required
+            />
+            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
+              .clarity.app
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Lowercase letters, numbers, and hyphens only. Cannot be changed
+            later.
+          </p>
+        </div>
+
+        <Button
+          type="submit"
+          variant="primary"
+          className="w-full"
+          disabled={create.isPending || !name || !slug}
+        >
+          {create.isPending ? "Creating…" : "Create organization"}
+        </Button>
+      </form>
+    </div>
+  );
+}

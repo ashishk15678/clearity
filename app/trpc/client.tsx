@@ -28,11 +28,7 @@ function getBaseUrl() {
   return "http://localhost:3000";
 }
 
-export function TRPCReactProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export function TRPCReactProvider({ children }: { children: React.ReactNode }) {
   const queryClient = getQueryClient();
   const [trpcClient] = useState(() =>
     createTRPCClient<AppRouter>({
@@ -41,7 +37,7 @@ export function TRPCReactProvider({
           url: `${getBaseUrl()}/api/trpc`,
         }),
       ],
-    })
+    }),
   );
 
   return (

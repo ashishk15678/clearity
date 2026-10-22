@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { baseProcedure, createTRPCRouter, protectedProcedure } from "@/trpc/init";
+import {
+  baseProcedure,
+  createTRPCRouter,
+  protectedProcedure,
+} from "@/trpc/init";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 
@@ -24,7 +28,7 @@ export const authRouter = createTRPCRouter({
         name: z.string().min(1, "Name is required"),
         email: z.string().email("Invalid email"),
         password: z.string().min(8, "Password must be at least 8 characters"),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       const result = await auth.api.signUpEmail({
@@ -53,7 +57,7 @@ export const authRouter = createTRPCRouter({
       z.object({
         email: z.string().email("Invalid email"),
         password: z.string().min(1, "Password is required"),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       const result = await auth.api.signInEmail({

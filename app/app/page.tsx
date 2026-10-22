@@ -1,69 +1,143 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useEffect, useRef, useState } from "react";
+
+const API_KEY = "clr_live_5jaOvEMG4vv4MtGa89pyIPVOog1IOCSy";
+const PROJECT_ID = "929dcce6-b5b8-497b-9109-dccc1cf49105";
+
+export default function RootPage() {
+  const scriptLoaded = useRef(false);
+  const [log, setLog] = useState<string[]>([]);
+
+  const push = (msg: string) =>
+    setLog((l) => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...l]);
+
+  // Load clarity.js once
+  useEffect(() => {
+    if (scriptLoaded.current) return;
+    scriptLoaded.current = true;
+    const s = document.createElement("script");
+    s.src = "/clarity.js";
+    s.setAttribute("data-project-id", PROJECT_ID);
+    s.setAttribute("data-api-key", API_KEY);
+    s.setAttribute("data-ingest", "http://localhost:4000");
+    s.onload = () => push("✅ clarity.js loaded");
+    s.onerror = () => push("❌ clarity.js failed to load — is dev server running?");
+    document.head.appendChild(s);
+  }, []);
+
+  function fireCustomEvent() {
+    const w = window as any;
+    if (!w.clarity?.track) { push("⚠️ clarity not ready yet"); return; }
+    w.clarity.track("button_click", { button: "custom-event", ts: Date.now() });
+    push("📤 custom event sent → button_click");
+  }
+
+  function fireError() {
+    push("📤 throwing error → will be caught by global handler");
+    // Use setTimeout so React's error boundary doesn't catch it
+    setTimeout(() => {
+      throw new Error("Test error from demo page — " + new Date().toISOString());
+    }, 0);
+  }
+
+  function firePageView() {
+    // Manually trigger a SPA navigation via history.pushState
+    const url = window.location.origin + "/?test=" + Date.now();
+    history.pushState({}, "", url);
+    push("📤 synthetic page view sent → " + url);
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-8 font-mono">
+      <div className="max-w-2xl mx-auto space-y-8">
+        {/* Header */}
+        <div>
+          <h1 className="text-xl font-bold text-white">Clarity SDK Test Harness</h1>
+          <p className="text-xs text-zinc-400 mt-1">
+            Fires real events to{" "}
+            <code className="text-indigo-400">localhost:4000</code> — open the
+            project dashboard to see them appear.
           </p>
+          <div className="mt-2 grid grid-cols-2 gap-x-4 text-xs text-zinc-500">
+            <span>
+              Project:{" "}
+              <code className="text-zinc-300">{PROJECT_ID.slice(0, 8)}…</code>
+            </span>
+            <span>
+              Key:{" "}
+              <code className="text-zinc-300">{API_KEY.slice(0, 16)}…</code>
+            </span>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+        {/* Buttons */}
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={fireCustomEvent}
+            className="rounded-lg bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition-colors"
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            🎯 Fire custom event
+          </button>
+          <button
+            onClick={fireError}
+            className="rounded-lg bg-red-700 hover:bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors"
           >
-            Documentation
-          </a>
+            💥 Throw error
+          </button>
+          <button
+            onClick={firePageView}
+            className="rounded-lg bg-emerald-700 hover:bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors"
+          >
+            📄 Fake page view
+          </button>
+          <button
+            onClick={() => {
+              fireCustomEvent();
+              fireCustomEvent();
+              fireCustomEvent();
+              push("📤 sent 3 rapid events for replay test");
+            }}
+            className="rounded-lg bg-zinc-700 hover:bg-zinc-600 px-4 py-2 text-sm font-medium text-white transition-colors"
+          >
+            ⚡ Burst 3 events
+          </button>
         </div>
-      </main>
+
+        {/* Activity log */}
+        <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 space-y-1 min-h-[160px]">
+          <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">
+            Activity log
+          </p>
+          {log.length === 0 ? (
+            <p className="text-xs text-zinc-600">No activity yet — click a button above.</p>
+          ) : (
+            log.map((line, i) => (
+              <p key={i} className="text-xs text-zinc-300 leading-relaxed">
+                {line}
+              </p>
+            ))
+          )}
+        </div>
+
+        {/* Instructions */}
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 text-xs text-zinc-400 space-y-2">
+          <p className="font-semibold text-zinc-300">How to use</p>
+          <ol className="list-decimal list-inside space-y-1">
+            <li>Make sure the ingest server is running on <code className="text-indigo-400">:4000</code></li>
+            <li>Fire events using the buttons above</li>
+            <li>
+              Open{" "}
+              <code className="text-indigo-400">/console</code> → select your
+              project → <strong>Events</strong> / <strong>Errors</strong> tabs
+            </li>
+            <li>
+              Session recordings appear under the{" "}
+              <strong>Sessions</strong> tab after the page is idle 5s
+            </li>
+          </ol>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,46 +1,63 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { signUp, useSession } from "@/lib/auth-client";
+import { Button } from "@/components/ui/button";
+import { BorderBeam } from "@/components/border-beam";
+import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { useMutation } from "@tanstack/react-query";
-import { useTRPC } from "@/trpc/client";
 
 export function SignupForm() {
-  const router = useRouter();
-  const trpc = useTRPC();
-
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-
-  const signUp = useMutation(
-    trpc.auth.signUp.mutationOptions({
-      onSuccess: () => {
-        router.push("/login");
-      },
-      onError: (err) => {
-        setError(err.message ?? "Sign up failed");
-      },
-    })
-  );
+  const [pending, setPending] = useState(false);
+  const session = useSession();
+  const hasSession = Boolean(session.data?.session);
+  const router = useRouter();
+  useEffect(() => {
+    if (!hasSession) return;
+    toast.success("You are already logged in. Redirecting now…");
+    const id = setTimeout(() => router.push("/console"), 5000);
+    return () => clearTimeout(id);
+  }, [hasSession, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    signUp.mutate({ name, email, password });
+    setPending(true);
+    try {
+      const res = await signUp.email({ name, email, password });
+      if (res.error) {
+        setError(res.error.message ?? "Sign up failed");
+        return;
+      }
+      // Sign-up also sets the session cookie — go straight to console.
+      window.location.href = "/console";
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setPending(false);
+    }
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {error && (
-        <p role="alert" className="rounded-md bg-red-50 px-4 py-2 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-400">
+        <p
+          role="alert"
+          className="rounded-md bg-red-50 px-4 py-2 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-400"
+        >
           {error}
         </p>
       )}
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="name" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <label
+          htmlFor="name"
+          className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+        >
           Name
         </label>
         <input
@@ -56,7 +73,10 @@ export function SignupForm() {
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="email" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <label
+          htmlFor="email"
+          className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+        >
           Email
         </label>
         <input
@@ -72,7 +92,10 @@ export function SignupForm() {
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="password" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <label
+          htmlFor="password"
+          className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+        >
           Password
         </label>
         <input
@@ -87,14 +110,15 @@ export function SignupForm() {
           placeholder="Min. 8 characters"
         />
       </div>
-
-      <button
-        type="submit"
-        disabled={signUp.isPending}
-        className="mt-1 flex h-10 items-center justify-center rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-      >
-        {signUp.isPending ? "Creating account…" : "Create account"}
-      </button>
+      <BorderBeam className="mt-2.5">
+        <Button
+          type="submit"
+          disabled={pending}
+          className="w-full flex h-10 items-center justify-center rounded-lg  px-4 text-sm font-medium  transition-colors disabled:opacity-50 dark:bg-zinc-50"
+        >
+          {pending ? "Creating account…" : "Create account"}
+        </Button>
+      </BorderBeam>
     </form>
   );
 }
