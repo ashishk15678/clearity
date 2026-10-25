@@ -3,18 +3,28 @@
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
+import { UserAvatar } from "@/components/user-avatar";
 
-// ─── Icons ────────────────────────────────────────────────────────────────────
+// ─── Logo ─────────────────────────────────────────────────────────────────────
 
-function Icon({
-  d,
-  d2,
-  evenOdd,
-}: {
-  d: string;
-  d2?: string;
-  evenOdd?: boolean;
-}) {
+function ClarityLogo() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-5 w-5 shrink-0" fill="none">
+      <rect width="20" height="20" rx="5" fill="#0070f3" />
+      <path
+        d="M5 10a5 5 0 0110 0"
+        stroke="white"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <circle cx="10" cy="10" r="1.75" fill="white" />
+    </svg>
+  );
+}
+
+// ─── Icon primitive ───────────────────────────────────────────────────────────
+
+function Icon({ d, d2, evenOdd }: { d: string; d2?: string; evenOdd?: boolean }) {
   return (
     <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
       {d2 ? (
@@ -37,22 +47,7 @@ function Icon({
   );
 }
 
-function ClarityLogo() {
-  return (
-    <svg viewBox="0 0 28 28" className="h-6 w-6 shrink-0" fill="none">
-      <rect width="28" height="28" rx="8" fill="#1f42d0" />
-      <path
-        d="M7 14a7 7 0 0114 0"
-        stroke="white"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-      />
-      <circle cx="14" cy="14" r="2.5" fill="white" />
-    </svg>
-  );
-}
-
-// ─── Nav items (paths built dynamically with orgSlug) ─────────────────────────
+// ─── Nav definitions ──────────────────────────────────────────────────────────
 
 function buildNav(orgSlug: string) {
   const base = `/console/${orgSlug}`;
@@ -61,10 +56,10 @@ function buildNav(orgSlug: string) {
       {
         href: base,
         label: "Overview",
+        exact: true,
         icon: (
           <Icon d="M10.707 2.293a1 1 0 00-1.414 0l-7 7A1 1 0 003 11h1v6a1 1 0 001 1h4v-4h2v4h4a1 1 0 001-1v-6h1a1 1 0 00.707-1.707l-7-7z" />
         ),
-        exact: true,
       },
       {
         href: `${base}/projects`,
@@ -81,7 +76,7 @@ function buildNav(orgSlug: string) {
         ),
       },
     ],
-    team: [
+    workspace: [
       {
         href: `${base}/teams`,
         label: "Teams",
@@ -117,34 +112,34 @@ function buildNav(orgSlug: string) {
   };
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── Sidebar component ────────────────────────────────────────────────────────
 
 export function Sidebar({ orgSlug }: { orgSlug: string }) {
   const pathname = usePathname();
   const base = `/console/${orgSlug}`;
+  const nav = buildNav(orgSlug);
 
   const isActive = (href: string, exact = false) =>
     exact
       ? pathname === href
-      : pathname === href ||
-        pathname.startsWith(href + "/") ||
-        pathname.startsWith(href + "?");
-
-  const nav = buildNav(orgSlug);
+      : pathname === href || pathname.startsWith(href + "/") || pathname.startsWith(href + "?");
 
   return (
-    <aside className="flex h-screen w-[220px] shrink-0 flex-col border-r border-border bg-sidebar text-sidebar-foreground">
-      {/* Logo */}
-      <div className="flex h-14 items-center gap-2.5 px-4 border-b border-border">
+    <aside className="flex h-screen w-[210px] shrink-0 flex-col border-r border-border bg-sidebar">
+      {/* ── Logo / brand ─────────────────────────────────────────────────── */}
+      <div className="flex h-[52px] items-center gap-2.5 border-b border-border px-4">
         <ClarityLogo />
-        <span className="text-sm font-semibold tracking-tight">Clarity</span>
+        <span className="text-[13px] font-semibold tracking-tight text-foreground">
+          Clarity
+        </span>
       </div>
 
-      {/* Nav */}
-      <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-2 py-3">
-        <NavSection>
+      {/* ── Nav ──────────────────────────────────────────────────────────── */}
+      <nav className="flex flex-1 flex-col overflow-y-auto px-2 py-3 gap-0.5">
+        {/* Main */}
+        <div className="flex flex-col gap-0.5">
           {nav.main.map((item) => (
-            <NavLink
+            <NavItem
               key={item.href}
               href={item.href}
               icon={item.icon}
@@ -152,12 +147,15 @@ export function Sidebar({ orgSlug }: { orgSlug: string }) {
               active={isActive(item.href, item.exact)}
             />
           ))}
-        </NavSection>
+        </div>
 
-        <NavSectionLabel label="Workspace" className="mt-4" />
-        <NavSection>
-          {nav.team.map((item) => (
-            <NavLink
+        {/* Workspace section */}
+        <div className="mt-4 flex flex-col gap-0.5">
+          <p className="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 select-none">
+            Workspace
+          </p>
+          {nav.workspace.map((item) => (
+            <NavItem
               key={item.href}
               href={item.href}
               icon={item.icon}
@@ -165,54 +163,31 @@ export function Sidebar({ orgSlug }: { orgSlug: string }) {
               active={isActive(item.href)}
             />
           ))}
-        </NavSection>
+        </div>
       </nav>
 
-      {/* Bottom user pill */}
+      {/* ── User pill ─────────────────────────────────────────────────────── */}
       <div className="border-t border-border p-2">
         <Link
           href={`${base}/settings`}
           className={cn(
-            "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors",
+            "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors",
             isActive(`${base}/settings`)
-              ? "bg-sidebar-accent text-sidebar-accent-foreground"
-              : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+              ? "bg-accent text-accent-foreground"
+              : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
           )}
         >
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold shrink-0">
-            C
-          </span>
-          <span className="truncate text-xs">Account</span>
+          <UserAvatar name={orgSlug} size={22} />
+          <span className="truncate text-xs font-medium">{orgSlug}</span>
         </Link>
       </div>
     </aside>
   );
 }
 
-function NavSection({ children }: { children: React.ReactNode }) {
-  return <div className="flex flex-col gap-0.5">{children}</div>;
-}
+// ─── NavItem ──────────────────────────────────────────────────────────────────
 
-function NavSectionLabel({
-  label,
-  className,
-}: {
-  label: string;
-  className?: string;
-}) {
-  return (
-    <p
-      className={cn(
-        "px-2.5 py-1 text-[11px] font-medium text-muted-foreground uppercase tracking-wider",
-        className,
-      )}
-    >
-      {label}
-    </p>
-  );
-}
-
-function NavLink({
+function NavItem({
   href,
   icon,
   label,
@@ -227,16 +202,16 @@ function NavLink({
     <Link
       href={href}
       className={cn(
-        "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors",
+        "group flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors",
         active
-          ? "bg-sidebar-accent text-sidebar-accent-foreground"
-          : "text-muted-foreground hover:bg-sidebar-accent/40 hover:text-sidebar-foreground",
+          ? "bg-accent text-foreground"
+          : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
       )}
     >
       <span
         className={cn(
           "transition-colors",
-          active ? "text-primary" : "text-muted-foreground",
+          active ? "text-foreground" : "text-muted-foreground group-hover:text-foreground",
         )}
       >
         {icon}

@@ -3,29 +3,44 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { ModeToggle } from "@/components/ui/theme-changer";
 import { OrgSwitcher } from "../org-switcher";
+import { UserAvatar } from "../user-avatar";
 
-export async function Topbar({ title }: { title: string }) {
+export async function Topbar({
+  title,
+  id = "",
+}: {
+  title: string;
+  id?: string;
+}) {
   const session = await auth.api.getSession({ headers: await headers() });
 
   return (
-    <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-background px-6">
-      <h1 className="text-sm font-semibold text-foreground">{title}</h1>
-      <div className="flex items-center gap-3">
+    <header className="flex h-[52px] shrink-0 items-center justify-between border-b border-border bg-background px-5">
+      {/* Left: page title + optional id */}
+      <div className="flex items-center gap-2 min-w-0">
+        <h1 className="text-[13px] font-semibold text-foreground truncate">{title}</h1>
+        {id && (
+          <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-mono text-muted-foreground">
+            {id}
+          </span>
+        )}
+      </div>
+
+      {/* Right: controls */}
+      <div className="flex items-center gap-2 shrink-0">
         <ModeToggle />
         {session?.user && (
-          <div className="flex items-center justify-center gap-x-2">
+          <>
             <OrgSwitcher />
-            <span className="text-xs text-muted-foreground hidden sm:block">
+            <span className="hidden md:block text-[12px] text-muted-foreground">
               {session.user.email}
             </span>
-          </div>
+            <UserAvatar
+              name={session.user.name ?? session.user.email ?? ""}
+              size={26}
+            />
+          </>
         )}
-        <span
-          className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold"
-          aria-label="User avatar"
-        >
-          {session?.user?.name?.[0]?.toUpperCase() ?? "?"}
-        </span>
       </div>
     </header>
   );
