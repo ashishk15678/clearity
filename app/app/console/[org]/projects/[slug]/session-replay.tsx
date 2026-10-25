@@ -3,24 +3,9 @@
 /**
  * SessionReplay
  * ─────────────
- * Plays back a session recording from the chunked frame stream stored in
- * session_recording_chunk rows. Each chunk is a JSON array of frames that were
- * captured by clarity.js.  Supported frame types:
- *   snapshot   – full structural DOM snapshot (our lightweight tree format)
- *   mouse      – { x, y }  (viewport px)
- *   click      – { x, y, target }
- *   scroll     – { x, y }
- *   resize     – { w, h }
- *   input      – masked
- *   nav        – SPA navigation
- *   custom     – custom event name
- *
- * All frames carry { type, ts, d } where ts is ms-since-page-load.
- *
- * Replay strategy:
- *   - Render the DOM snapshot as an iframe srcDoc (safe sandbox)
- *   - Overlay a canvas for mouse trail + click bursts
- *   - Scrub via a timeline slider; play / pause at 1× / 2× / 4×
+ * Plays back a session recording from chunked frame data.
+ * Frame types: snapshot, mouse, click, scroll, resize, input, nav, custom
+ * All frames carry { type, ts, d } — ts is ms since page load.
  */
 
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -30,174 +15,107 @@ import { cn } from "@/lib/cn";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type FrameType =
-  | "snapshot"
-  | "mouse"
-  | "click"
-  | "scroll"
-  | "resize"
-  | "input"
-  | "nav"
-  | "custom";
+type FrameType = "snapshot" | "mouse" | "click" | "scroll" | "resize" | "input" | "nav" | "custom";
 
-interface Frame {
-  type: FrameType;
-  ts: number; // ms since page load
-  d: unknown;
-}
+interface Frame { type: FrameType; ts: number; d: unknown; }
 
 interface SnapshotNode {
-  t: string; // tag or "text"
-  v?: string; // text content
-  a?: Record<string, string>; // attrs
-  c?: SnapshotNode[]; // children
+  t: string;       // tag or "text"
+  v?: string;      // text content
+  a?: Record<string, string>;
+  c?: SnapshotNode[];
 }
 
-// ─── Reconstruct HTML from snapshot tree ─────────────────────────────────────
+// ─── DOM reconstruction ───────────────────────────────────────────────────────
+
+const VOID_TAGS = new Set(["area","base","br","col","embed","hr","img","input","link","meta","param","source","track","wbr"]);
 
 function nodeToHtml(node: SnapshotNode): string {
-  if (node.t === "text") return escapeHtml(node.v ?? "");
-  const VOID = new Set([
-    "area","base","br","col","embed","hr","img","input",
-    "link","meta","param","source","track","wbr",
-  ]);
+  if (node.t === "text") return escHtml(node.v ?? "");
   const tag = node.t;
-  const attrs = Object.entries(node.a ?? {})
-    .map(([k, v]) => `${k}="${escapeAttr(v)}"`)
-    .join(" ");
+  const attrs = Object.entries(node.a ?? {}).map(([k, v]) => `${k}="${escAttr(v)}"`).join(" ");
   const open = attrs ? `<${tag} ${attrs}>` : `<${tag}>`;
-  if (VOID.has(tag)) return open;
-  const children = (node.c ?? []).map(nodeToHtml).join("");
-  return `${open}${children}</${tag}>`;
+  if (VOID_TAGS.has(tag)) return open;
+  return `${open}${(node.c ?? []).map(nodeToHtml).join("")}</${tag}>`;
 }
-
-function escapeHtml(s: string) {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-function escapeAttr(s: string) {
-  return s.replace(/"/g, "&quot;").replace(/&/g, "&amp;");
-}
-
+function escHtml(s: string) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+function escAttr(s: string) { return s.replace(/"/g, "&quot;").replace(/&/g, "&amp;"); }
 function snapshotToSrcDoc(snap: SnapshotNode | null): string {
-  if (!snap) return "<html><body><p style='font-family:sans-serif;padding:2rem;color:#888'>No DOM snapshot in this session.</p></body></html>";
-  // snap is the <html> node
-  const inner = nodeToHtml(snap);
-  // Inject base styles to reset pointer-events so the overlay canvas works
-  return `<!DOCTYPE html>${inner}`;
+  if (!snap) return "<html><body><p style='font-family:system-ui;padding:2rem;color:#888;font-size:14px'>No DOM snapshot captured for this session.</p></body></html>";
+  return `<!DOCTYPE html>${nodeToHtml(snap)}`;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function SessionReplay({ sessionId }: { sessionId: string }) {
   const trpc = useTRPC();
-  const { data: session, isPending } = useQuery(
-    trpc.sessions.byId.queryOptions({ id: sessionId }),
-  );
+  const { data: session, isPending } = useQuery(trpc.sessions.byId.queryOptions({ id: sessionId }));
 
-  // Flatten all chunks into a single sorted frame array
-  const frames = useRef<Frame[]>([]);
-  const [ready, setReady] = useState(false);
-  const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(1);
-  const [currentTs, setCurrentTs] = useState(0);
-  const [totalDuration, setTotalDuration] = useState(0);
-  const [activeView, setActiveView] = useState<"replay" | "heatmap">("replay");
-  const [eventLog, setEventLog] = useState<string[]>([]);
+  const frames       = useRef<Frame[]>([]);
+  const [ready,         setReady]        = useState(false);
+  const [playing,       setPlaying]      = useState(false);
+  const [speed,         setSpeed]        = useState(1);
+  const [currentTs,     setCurrentTs]    = useState(0);
+  const [totalDuration, setTotalDuration]= useState(0);
+  const [activeView,    setActiveView]   = useState<"replay" | "heatmap">("replay");
+  const [eventLog,      setEventLog]     = useState<string[]>([]);
 
-  // DOM refs
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const iframeRef   = useRef<HTMLIFrameElement>(null);
+  const canvasRef   = useRef<HTMLCanvasElement>(null);
   const heatCanvasRef = useRef<HTMLCanvasElement>(null);
-  const rafRef = useRef<number | null>(null);
-  const lastRealTs = useRef<number>(0);
-  const playheadTs = useRef<number>(0);
-  const frameIdx = useRef<number>(0);
+  const rafRef      = useRef<number | null>(null);
+  const lastRealTs  = useRef<number>(0);
+  const playheadTs  = useRef<number>(0);
 
-  // ── Build frame list from chunks ────────────────────────────────────────────
+  // ── Build frame list ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!session?.chunks) return;
     const all: Frame[] = [];
     for (const chunk of session.chunks) {
-      try {
-        const parsed: Frame[] = JSON.parse(chunk.frames);
-        all.push(...parsed);
-      } catch {}
+      try { const parsed: Frame[] = JSON.parse(chunk.frames); all.push(...parsed); } catch {}
     }
     all.sort((a, b) => a.ts - b.ts);
     frames.current = all;
     const last = all[all.length - 1];
-    const dur = last ? last.ts + 500 : session.duration ?? 5000;
-    setTotalDuration(dur);
+    setTotalDuration(last ? last.ts + 500 : (session.duration ?? 5000));
     setReady(true);
-
-    // Build heatmap from all mouse/click frames
     buildHeatmap(all);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
 
-  // ── Heatmap canvas ─────────────────────────────────────────────────────────
+  // ── Heatmap ─────────────────────────────────────────────────────────────────
   function buildHeatmap(allFrames: Frame[]) {
     const cvs = heatCanvasRef.current;
     if (!cvs) return;
-    const W = cvs.width;
-    const H = cvs.height;
+    const W = cvs.width; const H = cvs.height;
     const ctx = cvs.getContext("2d");
     if (!ctx) return;
     ctx.clearRect(0, 0, W, H);
-
-    // Collect mouse points, normalised to canvas dimensions using recorded viewport
     const vp = { w: session?.viewportW ?? 1280, h: session?.viewportH ?? 800 };
-    const points: { x: number; y: number; r: number; isClick: boolean }[] = [];
-
-    for (const f of allFrames) {
-      if (f.type === "mouse") {
-        const d = f.d as { x: number; y: number };
-        points.push({
-          x: (d.x / vp.w) * W,
-          y: (d.y / vp.h) * H,
-          r: 18,
-          isClick: false,
-        });
-      } else if (f.type === "click") {
-        const d = f.d as { x: number; y: number };
-        points.push({
-          x: (d.x / vp.w) * W,
-          y: (d.y / vp.h) * H,
-          r: 30,
-          isClick: true,
-        });
-      }
-    }
-
-    // Draw radial gradients stacked (additive glow = heat)
     ctx.globalCompositeOperation = "screen";
-    for (const p of points) {
-      const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
-      if (p.isClick) {
-        grad.addColorStop(0, "rgba(255,80,0,0.55)");
-        grad.addColorStop(1, "rgba(255,80,0,0)");
+    for (const f of allFrames) {
+      if (f.type !== "mouse" && f.type !== "click") continue;
+      const d = f.d as { x: number; y: number };
+      const cx = (d.x / vp.w) * W; const cy = (d.y / vp.h) * H;
+      const r = f.type === "click" ? 30 : 18;
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+      if (f.type === "click") {
+        grad.addColorStop(0, "rgba(255,80,0,0.55)"); grad.addColorStop(1, "rgba(255,80,0,0)");
       } else {
-        grad.addColorStop(0, "rgba(80,100,255,0.22)");
-        grad.addColorStop(1, "rgba(80,100,255,0)");
+        grad.addColorStop(0, "rgba(0,112,243,0.22)"); grad.addColorStop(1, "rgba(0,112,243,0)");
       }
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
     }
     ctx.globalCompositeOperation = "source-over";
   }
 
-  // ── Seek to a timestamp — apply all frames up to ts ─────────────────────────
+  // ── Seek ────────────────────────────────────────────────────────────────────
   const seekTo = useCallback((ts: number) => {
     const all = frames.current;
     if (!all.length) return;
 
-    // Find snapshot frame at or before ts
     let snapNode: SnapshotNode | null = null;
-    let scrollX = 0, scrollY = 0;
+    let scrollX = 0; let scrollY = 0;
     const mouseTrail: { x: number; y: number; ts: number }[] = [];
     const clicks: { x: number; y: number; ts: number }[] = [];
     const logs: string[] = [];
@@ -205,89 +123,61 @@ export function SessionReplay({ sessionId }: { sessionId: string }) {
     for (const f of all) {
       if (f.ts > ts) break;
       if (f.type === "snapshot") snapNode = f.d as SnapshotNode;
-      if (f.type === "scroll") {
-        const d = f.d as { x: number; y: number };
-        scrollX = d.x; scrollY = d.y;
-      }
-      if (f.type === "mouse") mouseTrail.push({ ...(f.d as { x: number; y: number }), ts: f.ts });
-      if (f.type === "click") clicks.push({ ...(f.d as { x: number; y: number }), ts: f.ts });
-      if (f.type === "nav") logs.push(`[${fmtTs(f.ts)}] 🔗 nav → ${(f.d as { url: string }).url}`);
-      if (f.type === "custom") logs.push(`[${fmtTs(f.ts)}] 🎯 ${(f.d as { name: string }).name}`);
+      if (f.type === "scroll") { const d = f.d as { x: number; y: number }; scrollX = d.x; scrollY = d.y; }
+      if (f.type === "mouse")  mouseTrail.push({ ...(f.d as { x: number; y: number }), ts: f.ts });
+      if (f.type === "click")  clicks.push({ ...(f.d as { x: number; y: number }), ts: f.ts });
+      if (f.type === "nav")    logs.push(`[${fmtTs(f.ts)}] ↗ nav → ${(f.d as { url: string }).url}`);
+      if (f.type === "custom") logs.push(`[${fmtTs(f.ts)}] ● ${(f.d as { name: string }).name}`);
     }
 
     setEventLog(logs.slice(-20));
 
-    // Render snapshot into iframe
     if (iframeRef.current && snapNode) {
       iframeRef.current.srcdoc = snapshotToSrcDoc(snapNode);
-      // After render, apply scroll
-      iframeRef.current.onload = () => {
-        try {
-          iframeRef.current?.contentWindow?.scrollTo(scrollX, scrollY);
-        } catch {}
-      };
+      iframeRef.current.onload = () => { try { iframeRef.current?.contentWindow?.scrollTo(scrollX, scrollY); } catch {} };
     }
 
-    // Draw mouse trail + clicks on overlay canvas
     const cvs = canvasRef.current;
     if (cvs) {
       const ctx = cvs.getContext("2d");
       if (ctx) {
         const vp = { w: session?.viewportW ?? 1280, h: session?.viewportH ?? 800 };
-        const scaleX = cvs.width / vp.w;
-        const scaleY = cvs.height / vp.h;
-
+        const sX = cvs.width / vp.w; const sY = cvs.height / vp.h;
         ctx.clearRect(0, 0, cvs.width, cvs.height);
 
-        // Trail (last 30 points)
+        // Mouse trail (last 30)
         const trail = mouseTrail.slice(-30);
         if (trail.length > 1) {
           ctx.beginPath();
-          ctx.strokeStyle = "rgba(99,102,241,0.5)";
-          ctx.lineWidth = 2;
-          ctx.lineJoin = "round";
-          ctx.lineCap = "round";
-          ctx.moveTo(trail[0].x * scaleX, trail[0].y * scaleY);
-          for (let i = 1; i < trail.length; i++) {
-            ctx.lineTo(trail[i].x * scaleX, trail[i].y * scaleY);
-          }
+          ctx.strokeStyle = "rgba(0,112,243,0.45)";
+          ctx.lineWidth = 2; ctx.lineJoin = "round"; ctx.lineCap = "round";
+          ctx.moveTo(trail[0].x * sX, trail[0].y * sY);
+          for (let i = 1; i < trail.length; i++) ctx.lineTo(trail[i].x * sX, trail[i].y * sY);
           ctx.stroke();
         }
 
-        // Cursor dot at latest mouse position
+        // Cursor dot
         const last = mouseTrail[mouseTrail.length - 1];
         if (last) {
-          ctx.beginPath();
-          ctx.arc(last.x * scaleX, last.y * scaleY, 7, 0, Math.PI * 2);
-          ctx.fillStyle = "#6366f1";
-          ctx.fill();
-          ctx.strokeStyle = "white";
-          ctx.lineWidth = 2;
-          ctx.stroke();
+          ctx.beginPath(); ctx.arc(last.x * sX, last.y * sY, 6, 0, Math.PI * 2);
+          ctx.fillStyle = "#0070f3"; ctx.fill();
+          ctx.strokeStyle = "white"; ctx.lineWidth = 2; ctx.stroke();
         }
 
-        // Click ripples (recent 2 seconds)
-        for (const c of clicks.filter(c => ts - c.ts < 2000)) {
-          const age = (ts - c.ts) / 2000; // 0=new, 1=old
-          const r = 8 + age * 20;
-          ctx.beginPath();
-          ctx.arc(c.x * scaleX, c.y * scaleY, r, 0, Math.PI * 2);
-          ctx.strokeStyle = `rgba(239,68,68,${1 - age})`;
-          ctx.lineWidth = 2;
-          ctx.stroke();
+        // Click ripples
+        for (const c of clicks.filter((c) => ts - c.ts < 2000)) {
+          const age = (ts - c.ts) / 2000;
+          ctx.beginPath(); ctx.arc(c.x * sX, c.y * sY, 8 + age * 20, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(224,0,0,${1 - age})`; ctx.lineWidth = 2; ctx.stroke();
         }
       }
     }
   }, [session]);
 
-  // ── Playback RAF loop ────────────────────────────────────────────────────────
+  // ── RAF playback loop ───────────────────────────────────────────────────────
   useEffect(() => {
-    if (!playing) {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      return;
-    }
+    if (!playing) { if (rafRef.current) cancelAnimationFrame(rafRef.current); return; }
     lastRealTs.current = performance.now();
-
     function tick() {
       const now = performance.now();
       const elapsed = (now - lastRealTs.current) * speed;
@@ -295,87 +185,96 @@ export function SessionReplay({ sessionId }: { sessionId: string }) {
       playheadTs.current = Math.min(playheadTs.current + elapsed, totalDuration);
       setCurrentTs(playheadTs.current);
       seekTo(playheadTs.current);
-
-      if (playheadTs.current >= totalDuration) {
-        setPlaying(false);
-        return;
-      }
+      if (playheadTs.current >= totalDuration) { setPlaying(false); return; }
       rafRef.current = requestAnimationFrame(tick);
     }
     rafRef.current = requestAnimationFrame(tick);
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, [playing, speed, totalDuration, seekTo]);
 
-  // ── Rebuild heatmap when canvas is ready ─────────────────────────────────────
   useEffect(() => {
     if (ready && activeView === "heatmap") buildHeatmap(frames.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeView, ready]);
 
+  // ── Loading / empty ─────────────────────────────────────────────────────────
   if (isPending) {
     return (
-      <div className="flex items-center justify-center h-64 text-sm text-zinc-400">
-        Loading session…
+      <div className="flex items-center justify-center h-48 bg-black rounded-lg">
+        <div className="flex items-center gap-2 text-sm text-zinc-500">
+          <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" strokeLinecap="round" />
+          </svg>
+          Loading session…
+        </div>
       </div>
     );
   }
 
   if (!session) {
     return (
-      <div className="flex items-center justify-center h-64 text-sm text-zinc-400">
-        Session not found.
+      <div className="flex items-center justify-center h-48 bg-black rounded-lg">
+        <p className="text-sm text-zinc-500">Session not found.</p>
       </div>
     );
   }
 
   const pct = totalDuration > 0 ? (currentTs / totalDuration) * 100 : 0;
+  const mouseFrameCount = frames.current.filter((f) => f.type === "mouse").length;
+  const clickFrameCount = frames.current.filter((f) => f.type === "click").length;
 
   return (
-    <div className="flex flex-col gap-0 bg-zinc-950 rounded-xl overflow-hidden border border-zinc-800">
-      {/* ── Header bar ──────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-800 bg-zinc-900">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-mono text-zinc-400">
-            {session.visitorId.slice(0, 12)}…
-          </span>
+    <div className="flex flex-col bg-zinc-950 overflow-hidden">
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-800">
+        <div className="flex items-center gap-3 min-w-0">
+          <code className="text-xs font-mono text-zinc-400 truncate">{session.visitorId.slice(0, 12)}…</code>
           {session.errorCount > 0 && (
-            <span className="inline-flex items-center rounded-full bg-red-900/40 border border-red-800 px-2 py-0.5 text-[10px] text-red-400">
+            <span className="inline-flex items-center rounded-full bg-red-900/40 border border-red-800/50 px-2 py-0.5 text-[10px] font-medium text-red-400">
               {session.errorCount} error{session.errorCount !== 1 ? "s" : ""}
             </span>
           )}
+          <span className="text-[11px] text-zinc-600 tabular-nums shrink-0">
+            {fmtTs(session.duration ?? 0)} total
+          </span>
         </div>
+
         {/* View toggle */}
-        <div className="flex items-center rounded-lg overflow-hidden border border-zinc-700">
+        <div className="flex items-center rounded-md border border-zinc-700 overflow-hidden shrink-0">
           {(["replay", "heatmap"] as const).map((v) => (
             <button
               key={v}
               onClick={() => setActiveView(v)}
               className={cn(
-                "px-3 py-1 text-xs font-medium capitalize transition-colors",
+                "px-3 py-1 text-xs font-medium transition-colors",
                 activeView === v
-                  ? "bg-indigo-600 text-white"
-                  : "bg-zinc-900 text-zinc-400 hover:text-zinc-200",
+                  ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
+                  : "bg-transparent text-zinc-500 hover:text-zinc-300",
               )}
             >
-              {v === "replay" ? "▶ Replay" : "🔥 Heatmap"}
+              {v === "replay" ? "▶ Replay" : "◈ Heatmap"}
             </button>
           ))}
         </div>
       </div>
 
-      {/* ── Viewport area ───────────────────────────────────────────────────── */}
-      <div className="relative bg-zinc-950" style={{ aspectRatio: `${session.viewportW ?? 1280} / ${session.viewportH ?? 800}`, maxHeight: "480px" }}>
-        {/* Iframe — DOM snapshot */}
+      {/* ── Viewport ──────────────────────────────────────────────────────── */}
+      <div
+        className="relative bg-zinc-950 w-full"
+        style={{
+          aspectRatio: `${session.viewportW ?? 1280} / ${session.viewportH ?? 800}`,
+          maxHeight: "520px",
+        }}
+      >
         <iframe
           ref={iframeRef}
           sandbox="allow-same-origin"
           className={cn(
             "absolute inset-0 w-full h-full border-0 pointer-events-none",
-            activeView === "heatmap" && "opacity-30",
+            activeView === "heatmap" && "opacity-20",
           )}
           title="Session replay"
         />
-
-        {/* Cursor + click overlay (replay only) */}
         {activeView === "replay" && (
           <canvas
             ref={canvasRef}
@@ -384,8 +283,6 @@ export function SessionReplay({ sessionId }: { sessionId: string }) {
             className="absolute inset-0 w-full h-full pointer-events-none"
           />
         )}
-
-        {/* Heatmap canvas */}
         {activeView === "heatmap" && (
           <canvas
             ref={heatCanvasRef}
@@ -394,62 +291,58 @@ export function SessionReplay({ sessionId }: { sessionId: string }) {
             className="absolute inset-0 w-full h-full pointer-events-none"
           />
         )}
-
-        {/* Empty state */}
         {ready && frames.current.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <p className="text-sm text-zinc-500">
-              No frames recorded for this session yet — the SDK flushes every 5s.
+            <p className="text-sm text-zinc-500 text-center max-w-sm px-6">
+              No frames recorded yet — the SDK flushes every 5 seconds and on page unload.
             </p>
           </div>
         )}
       </div>
 
-      {/* ── Playback controls (replay only) ────────────────────────────────── */}
+      {/* ── Playback controls ────────────────────────────────────────────── */}
       {activeView === "replay" && (
-        <div className="px-4 py-3 border-t border-zinc-800 bg-zinc-900 space-y-2">
-          {/* Scrubber */}
-          <input
-            type="range"
-            min={0}
-            max={totalDuration}
-            value={currentTs}
-            onChange={(e) => {
-              const ts = Number(e.target.value);
-              playheadTs.current = ts;
-              setCurrentTs(ts);
-              seekTo(ts);
-            }}
-            className="w-full h-1.5 accent-indigo-500 cursor-pointer"
-          />
+        <div className="px-4 py-3 border-t border-zinc-800 space-y-2.5">
+          {/* Progress bar */}
+          <div className="relative h-1 bg-zinc-800 rounded-full overflow-hidden cursor-pointer group">
+            <div className="h-full bg-zinc-400 rounded-full transition-all" style={{ width: `${pct}%` }} />
+            <input
+              type="range"
+              min={0}
+              max={totalDuration}
+              value={currentTs}
+              onChange={(e) => {
+                const ts = Number(e.target.value);
+                playheadTs.current = ts;
+                setCurrentTs(ts);
+                seekTo(ts);
+              }}
+              className="absolute inset-0 w-full opacity-0 cursor-pointer h-full"
+            />
+          </div>
 
-          <div className="flex items-center justify-between">
-            {/* Play / Pause */}
+          <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
+              {/* Play/pause */}
               <button
                 onClick={() => {
-                  if (currentTs >= totalDuration) {
-                    playheadTs.current = 0;
-                    setCurrentTs(0);
-                  }
+                  if (currentTs >= totalDuration) { playheadTs.current = 0; setCurrentTs(0); }
                   setPlaying((p) => !p);
                 }}
-                className="flex items-center justify-center h-7 w-7 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs transition-colors"
+                className="flex items-center justify-center h-7 w-7 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-colors text-[11px]"
               >
                 {playing ? "⏸" : "▶"}
               </button>
 
               {/* Speed */}
-              <div className="flex items-center rounded overflow-hidden border border-zinc-700">
+              <div className="flex items-center rounded-md border border-zinc-700 overflow-hidden">
                 {[1, 2, 4].map((s) => (
                   <button
                     key={s}
                     onClick={() => setSpeed(s)}
                     className={cn(
                       "px-2 py-0.5 text-[11px] font-mono transition-colors",
-                      speed === s
-                        ? "bg-indigo-600 text-white"
-                        : "bg-zinc-900 text-zinc-400 hover:text-zinc-200",
+                      speed === s ? "bg-zinc-100 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100" : "text-zinc-500 hover:text-zinc-300",
                     )}
                   >
                     {s}×
@@ -459,38 +352,32 @@ export function SessionReplay({ sessionId }: { sessionId: string }) {
             </div>
 
             {/* Timestamp */}
-            <span className="text-[11px] font-mono text-zinc-500 tabular-nums">
+            <span className="text-[11px] font-mono text-zinc-600 tabular-nums">
               {fmtTs(currentTs)} / {fmtTs(totalDuration)}
             </span>
           </div>
         </div>
       )}
 
-      {/* ── Heatmap legend ──────────────────────────────────────────────────── */}
+      {/* ── Heatmap legend ──────────────────────────────────────────────── */}
       {activeView === "heatmap" && (
-        <div className="px-4 py-2.5 border-t border-zinc-800 bg-zinc-900 flex items-center gap-6 text-xs text-zinc-400">
-          <div className="flex items-center gap-1.5">
-            <span className="inline-block h-2.5 w-2.5 rounded-full bg-indigo-500/70" />
-            Mouse movement
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="inline-block h-2.5 w-2.5 rounded-full bg-orange-500" />
-            Clicks
-          </div>
-          <span className="ml-auto text-zinc-600">
-            {frames.current.filter(f => f.type === "mouse").length} mouse points ·{" "}
-            {frames.current.filter(f => f.type === "click").length} clicks
+        <div className="px-4 py-2.5 border-t border-zinc-800 flex items-center gap-6 text-xs text-zinc-500">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-blue-500/70" />
+            Mouse ({mouseFrameCount})
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-orange-500" />
+            Clicks ({clickFrameCount})
           </span>
         </div>
       )}
 
-      {/* ── Event log (replay only) ────────────────────────────────────────── */}
+      {/* ── Event log ───────────────────────────────────────────────────── */}
       {activeView === "replay" && eventLog.length > 0 && (
-        <div className="px-4 py-2 border-t border-zinc-800 bg-zinc-950 max-h-28 overflow-y-auto">
+        <div className="px-4 py-2 border-t border-zinc-800 max-h-24 overflow-y-auto">
           {eventLog.map((line, i) => (
-            <p key={i} className="text-[11px] font-mono text-zinc-500 leading-5">
-              {line}
-            </p>
+            <p key={i} className="text-[11px] font-mono text-zinc-600 leading-5">{line}</p>
           ))}
         </div>
       )}
@@ -500,7 +387,5 @@ export function SessionReplay({ sessionId }: { sessionId: string }) {
 
 function fmtTs(ms: number) {
   const s = Math.floor(ms / 1000);
-  const m = Math.floor(s / 60);
-  const ss = String(s % 60).padStart(2, "0");
-  return `${m}:${ss}`;
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
