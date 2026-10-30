@@ -45,80 +45,89 @@ export function OrgCreateModal() {
   };
 
   return (
-    <div className="w-full max-w-md rounded-2xl bg-card border border-border shadow-xl p-8 space-y-6">
-      {/* Icon + heading */}
-      <div className="flex flex-col items-center text-center gap-3">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
-          <Building2 className="h-7 w-7 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">
-            Create your organization
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground max-w-xs">
-            An organization is your workspace for projects, analytics, and your
-            team.
-          </p>
-        </div>
-      </div>
-
-      {/* Form */}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!name || !slug) return;
-          create.mutate({ name, slug });
-        }}
-        className="space-y-4"
-      >
-        {create.error && (
-          <p className="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
-            {create.error.message}
-          </p>
-        )}
-
-        <div className="space-y-1.5">
-          <Label htmlFor="org-name">Organization name</Label>
-          <Input
-            id="org-name"
-            placeholder="Acme Corp"
-            value={name}
-            onChange={(e) => handleNameChange(e.target.value)}
-            autoFocus
-            required
-          />
+    /* 
+      BACKGROUND WRAPPER
+      1. bg-blue-900 provides the solid blue base color.
+      2. bg-[url(...)] points to your pattern image (place it in the /public folder).
+      3. bg-blend-soft-light or bg-blend-overlay blends the pattern into the blue color.
+    */
+    <div className="flex min-h-screen w-full items-center justify-center p-4 bg-blue-900 bg-[url('/indian-wildlife-pattern.png')] bg-repeat bg-blend-soft-light">
+      
+      {/* Actual Modal Card */}
+      <div className="relative z-10 w-full max-w-md rounded-2xl bg-card border border-border shadow-2xl p-8 space-y-6">
+        
+        {/* Icon + heading */}
+        <div className="flex flex-col items-center text-center gap-3">
+          <div>
+            <h1 className="text-xl font-semibold text-foreground">
+              Create your organization
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground max-w-xs">
+              An organization is your workspace for projects, analytics, and your
+              team.
+            </p>
+          </div>
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="org-slug">Slug</Label>
-          <div className="relative">
+        {/* Form */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!name || !slug) return;
+            create.mutate({ name, slug });
+          }}
+          className="space-y-4"
+        >
+          {create.error && (
+            <p className="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              {create.error.message}
+            </p>
+          )}
+
+          <div className="space-y-1.5">
+            <Label htmlFor="org-name">Organization name</Label>
             <Input
-              id="org-slug"
-              placeholder="acme"
-              value={slug}
-              onChange={(e) => handleSlugChange(e.target.value)}
-              className="font-mono pr-28"
+              id="org-name"
+              placeholder="Acme Corp"
+              value={name}
+              className="py-0"
+              onChange={(e) => handleNameChange(e.target.value)}
+              autoFocus
               required
             />
-            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
-              .clarity.app
-            </span>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Lowercase letters, numbers, and hyphens only. Cannot be changed
-            later.
-          </p>
-        </div>
 
-        <Button
-          type="submit"
-          variant="primary"
-          className="w-full"
-          disabled={create.isPending || !name || !slug}
-        >
-          {create.isPending ? "Creating…" : "Create organization"}
-        </Button>
-      </form>
+          <div className="space-y-1.5">
+            <Label htmlFor="org-slug">Slug</Label>
+            <div className="relative">
+              <Input
+                id="org-slug"
+                placeholder="acme"
+                value={slug}
+                onChange={(e) => handleSlugChange(e.target.value)}
+                className="font-mono pr-28"
+                required
+              />
+              <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
+                .clarity.app
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Lowercase letters, numbers, and hyphens only. Cannot be changed
+              later.
+            </p>
+          </div>
+
+          <Button
+            type="submit"
+            variant="primary"
+            className="w-full"
+            disabled={create.isPending || !name || !slug}
+          >
+            {create.isPending ? "Creating…" : "Create organization"}
+          </Button>
+        </form>
+      </div>
     </div>
   );
 }

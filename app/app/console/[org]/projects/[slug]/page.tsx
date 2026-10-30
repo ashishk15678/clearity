@@ -48,7 +48,7 @@ export default async function ProjectPage({
 
   return (
     <div className="flex flex-col">
-      <Topbar title={project.name} />
+      <Topbar title={project.name} id={project.slug} />
       <ProjectDetail project={project} />
     </div>
   );

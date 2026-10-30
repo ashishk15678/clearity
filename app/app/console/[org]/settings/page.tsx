@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { Topbar } from "@/components/dashboard/topbar";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { SignOutButton } from "./sign-out-button";
+import { UserAvatar } from "@/components/user-avatar";
 
 // export const instant = false;
 export const metadata = { title: "Settings · Clarity" };
@@ -25,9 +26,7 @@ export default async function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-4">
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-600 text-lg font-bold text-white">
-                {user.name?.[0]?.toUpperCase() ?? "?"}
-              </span>
+              <UserAvatar name={user.name ?? user.email ?? ""} size={64} />
               <div>
                 <p className="font-semibold text-zinc-900 dark:text-zinc-50">
                   {user.name}

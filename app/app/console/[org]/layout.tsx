@@ -27,7 +27,7 @@ export default async function ConsoleLayout({
   if (!membership) notFound();
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen overflow-hidden bg-zinc-100 dark:bg-zinc-900/70">
       <Sidebar orgSlug={orgSlug} />
       <div className="flex flex-1 flex-col overflow-hidden min-w-0">
         <main className="flex-1 overflow-y-auto">{children}</main>

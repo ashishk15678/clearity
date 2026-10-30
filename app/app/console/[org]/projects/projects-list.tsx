@@ -166,9 +166,7 @@ export function ProjectsList({
       <CreateProjectDialog
         open={open}
         onClose={() => setOpen(false)}
-        onCreate={(data) =>
-          create.mutate({ ...data, organizationId })
-        }
+        onCreate={(data) => create.mutate({ ...data, organizationId })}
         isPending={create.isPending}
         error={create.error?.message}
       />

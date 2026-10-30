@@ -12,9 +12,7 @@ function slugify(s: string) {
     .replace(/^-+|-+$/g, "");
 }
 
-
 export const OrgRouter = createTRPCRouter({
-
   list: protectedProcedure.query(async ({ ctx }) => {
     return prisma.organization.findMany({
       where: { members: { some: { userId: ctx.user.id } } },

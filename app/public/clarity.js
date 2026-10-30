@@ -1,27 +1,39 @@
 /**
- * Clarity Analytics SDK
- * Drop this script on any page to capture:
- *   - Page views (URL, referrer, time-on-page)
- *   - Custom events
- *   - Session recordings (lightweight DOM snapshot + interaction stream)
- *   - Errors (with stack traces, breadcrumbs, and the session recording attached)
+ * Clarity Analytics SDK  (v2 – optimized)
  *
- * Usage:
- *   <script
- *     src="https://your-app.com/clarity.js"
- *     data-project-id="YOUR_PROJECT_ID"
- *     data-api-key="clr_live_…"
- *     data-ingest="http://localhost:4000"
- *   ></script>
+ * Captures: page views (time-on-page = visible time, scroll depth), custom
+ * events, rage/dead clicks, session recordings (privacy-masked DOM snapshot +
+ * interaction stream), and errors (stack + breadcrumbs).
+ *
+ * <script
+ *   src="https://your-app.com/clarity.js"
+ *   data-project-id="YOUR_PROJECT_ID"
+ *   data-api-key="clr_live_…"
+ *   data-ingest="http://localhost:4000"
+ *   data-sample-rate="1"        (optional, 0–1: share of sessions recorded)
+ *   data-mask-text="false"      (optional, "true" masks ALL page text in replays)
+ * ></script>
+ *
+ * Privacy attributes (put on any element):
+ *   data-clarity-mask   → text inside is replaced with •••• in replays
+ *   data-clarity-block  → element is replaced by an empty box in replays
+ *
+ * API: clarity.track(name, props) · clarity.identify(id, traits)
+ *      clarity.optOut() · clarity.optIn() · clarity.flush()
  */
 (function (window, document) {
   "use strict";
 
+  // ── Guards ──────────────────────────────────────────────────────────────────
+
+  if (window.__clarityLoaded) return; // never double-init (double snippets, HMR)
+  window.__clarityLoaded = true;
+
   var script =
     document.currentScript ||
     (function () {
-      var scripts = document.getElementsByTagName("script");
-      return scripts[scripts.length - 1];
+      var s = document.getElementsByTagName("script");
+      return s[s.length - 1];
     })();
 
   var PROJECT_ID = script.getAttribute("data-project-id") || "";
@@ -29,362 +41,730 @@
   var INGEST = (
     script.getAttribute("data-ingest") || "http://localhost:4000"
   ).replace(/\/$/, "");
+  var SAMPLE = parseFloat(script.getAttribute("data-sample-rate"));
+  var MASK_TEXT = script.getAttribute("data-mask-text") === "true";
+  if (isNaN(SAMPLE)) SAMPLE = 1;
 
   if (!PROJECT_ID || !API_KEY) {
     console.warn("[Clarity] Missing data-project-id or data-api-key.");
     return;
   }
 
+  // Respect Do-Not-Track / Global Privacy Control
+  if (
+    navigator.doNotTrack === "1" ||
+    window.doNotTrack === "1" ||
+    navigator.globalPrivacyControl
+  )
+    return;
+
+  var OPT_KEY = "_clr_optout";
+  function lsGet(k) {
+    try {
+      return localStorage.getItem(k);
+    } catch (_) {
+      return null;
+    }
+  }
+  function lsSet(k, v) {
+    try {
+      localStorage.setItem(k, v);
+    } catch (_) {}
+  }
+  function ssGet(k) {
+    try {
+      return sessionStorage.getItem(k);
+    } catch (_) {
+      return null;
+    }
+  }
+  function ssSet(k, v) {
+    try {
+      sessionStorage.setItem(k, v);
+    } catch (_) {}
+  }
+  function parse(raw) {
+    try {
+      return raw ? JSON.parse(raw) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  if (lsGet(OPT_KEY) === "1") return;
+
   function uuid() {
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
-      /[xy]/g,
-      function (c) {
-        var r = (Math.random() * 16) | 0;
-        return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
-      },
+    try {
+      var c = window.crypto;
+      if (c && c.randomUUID) return c.randomUUID();
+      var b = new Uint8Array(16);
+      c.getRandomValues(b);
+      b[6] = (b[6] & 15) | 64;
+      b[8] = (b[8] & 63) | 128;
+      var h = [];
+      for (var i = 0; i < 16; i++) h.push((b[i] + 256).toString(16).slice(1));
+      return (
+        h.slice(0, 4).join("") +
+        "-" +
+        h.slice(4, 6).join("") +
+        "-" +
+        h.slice(6, 8).join("") +
+        "-" +
+        h.slice(8, 10).join("") +
+        "-" +
+        h.slice(10).join("")
+      );
+    } catch (_) {
+      return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+        /[xy]/g,
+        function (ch) {
+          var r = (Math.random() * 16) | 0;
+          return (ch === "x" ? r : (r & 3) | 8).toString(16);
+        },
+      );
+    }
+  }
+
+  // Visitor: long-lived (localStorage)
+  var visitor = parse(lsGet("_clr_vid"));
+  if (!visitor || !visitor.id) {
+    visitor = { id: uuid(), ts: Date.now() };
+    lsSet("_clr_vid", JSON.stringify(visitor));
+  }
+  var VISITOR_ID = visitor.id;
+
+  // Session: per-tab, rolls over after 30 min of inactivity
+  var SESSION_TTL = 30 * 60 * 1000;
+  var SKEY = "_clr_sid";
+  var session = parse(ssGet(SKEY));
+  if (!session || !session.id || Date.now() - session.ts > SESSION_TTL) {
+    session = {
+      id: uuid(),
+      ts: Date.now(),
+      sampled: Math.random() < SAMPLE,
+      isNew: true,
+    };
+  } else {
+    session.isNew = false;
+  }
+  ssSet(
+    SKEY,
+    JSON.stringify({
+      id: session.id,
+      ts: Date.now(),
+      sampled: session.sampled,
+    }),
+  );
+
+  var lastTouch = 0;
+  function touch() {
+    var n = Date.now();
+    if (n - lastTouch < 10000) return;
+    lastTouch = n;
+    ssSet(
+      SKEY,
+      JSON.stringify({ id: session.id, ts: n, sampled: session.sampled }),
     );
   }
 
-  var VISITOR_KEY = "_clr_vid";
-  var SESSION_KEY = "_clr_sid";
+  var RECORD = session.sampled;
 
-  function getOrCreate(key, ttlMs) {
-    try {
-      var raw = sessionStorage.getItem(key) || localStorage.getItem(key);
-      if (raw) {
-        var parsed = JSON.parse(raw);
-        if (!ttlMs || Date.now() - parsed.ts < ttlMs) return parsed.id;
-      }
-    } catch (_) {}
-    var id = uuid();
-    var val = JSON.stringify({ id: id, ts: Date.now() });
-    try {
-      localStorage.setItem(key, val);
-    } catch (_) {}
-    try {
-      sessionStorage.setItem(key, val);
-    } catch (_) {}
-    return id;
-  }
+  // ── Network ─────────────────────────────────────────────────────────────────
 
-  var VISITOR_ID = getOrCreate(VISITOR_KEY, null);
-  var SESSION_ID = getOrCreate(SESSION_KEY, 30 * 60 * 1000); // 30 min TTL
+  var MAX_BODY = 60000; // fetch keepalive hard limit is 64 KB
+
+  var optedOut = false;
 
   function post(path, body) {
+    if (optedOut) return null;
+    body.session_id = session.id;
     try {
-      var blob =
-        typeof Blob !== "undefined"
-          ? new Blob([JSON.stringify(body)], { type: "application/json" })
-          : null;
-      if (navigator.sendBeacon && blob) {
-        // sendBeacon doesn't support custom headers — fall back to fetch for
-        // beacon calls so we can attach the API key.
-      }
-      if (typeof fetch !== "undefined") {
-        fetch(INGEST + path, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-API-Key": API_KEY },
-          body: JSON.stringify(body),
-          keepalive: true,
-        }).catch(function () {});
-      }
-    } catch (_) {}
+      return fetch(INGEST + path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-API-Key": API_KEY },
+        body: JSON.stringify(body),
+        keepalive: true,
+        credentials: "omit",
+      });
+    } catch (_) {
+      return null;
+    }
   }
 
-  // ── Breadcrumb ring-buffer ─────────────────────────────────────────────────
+  // ── Small utils ─────────────────────────────────────────────────────────────
+
+  function now() {
+    return Date.now();
+  }
+
+  function describe(el) {
+    if (!el || !el.tagName) return "unknown";
+    var tag = el.tagName.toLowerCase();
+    var id = el.id ? "#" + el.id : "";
+    var cls = el.getAttribute && el.getAttribute("class");
+    cls = cls ? "." + cls.trim().split(/\s+/).slice(0, 2).join(".") : "";
+    return (tag + id + cls).slice(0, 120);
+  }
+
+  function clip(s, n) {
+    s = String(s);
+    return s.length > n ? s.slice(0, n) + "…" : s;
+  }
+
+  // ── Breadcrumbs (ring buffer) ───────────────────────────────────────────────
+
   var MAX_BREADCRUMBS = 30;
   var breadcrumbs = [];
 
   function addBreadcrumb(type, message, data) {
     breadcrumbs.push({
       type: type,
-      message: message,
+      message: clip(message, 200),
       data: data,
-      ts: Date.now(),
+      ts: now(),
     });
     if (breadcrumbs.length > MAX_BREADCRUMBS) breadcrumbs.shift();
   }
 
-  // Capture console.log / warn / error as breadcrumbs
   ["log", "warn", "error", "info"].forEach(function (method) {
-    var orig = console[method].bind(console);
+    if (typeof console[method] !== "function") return;
+    var orig = console[method];
     console[method] = function () {
-      var args = Array.prototype.slice.call(arguments);
-      addBreadcrumb(
-        "console." + method,
-        args
-          .map(function (a) {
-            try {
-              return typeof a === "object" ? JSON.stringify(a) : String(a);
-            } catch (_) {
-              return String(a);
-            }
-          })
-          .join(" "),
-      );
-      orig.apply(console, arguments);
+      try {
+        var parts = [];
+        for (var i = 0; i < arguments.length && i < 5; i++) {
+          var a = arguments[i];
+          parts.push(a && typeof a === "object" ? "[object]" : String(a)); // no deep stringify: cheap + no PII/circulars
+        }
+        addBreadcrumb("console." + method, parts.join(" "));
+      } catch (_) {}
+      return orig.apply(console, arguments);
     };
   });
 
-  // Capture clicks as breadcrumbs
-  document.addEventListener(
-    "click",
-    function (e) {
-      var el = e.target;
-      var tag = el.tagName ? el.tagName.toLowerCase() : "unknown";
-      var text = (el.textContent || "").trim().slice(0, 60);
-      var id = el.id ? "#" + el.id : "";
-      var cls =
-        el.className && typeof el.className === "string"
-          ? "." + el.className.trim().split(/\s+/).slice(0, 2).join(".")
-          : "";
-      addBreadcrumb("click", tag + id + cls, { text: text });
-    },
-    true,
-  );
+  // ── DOM snapshot (privacy-aware, size-capped) ───────────────────────────────
 
-  // ── DOM Snapshot helper ────────────────────────────────────────────────────
-  /**
-   * Produces a *lightweight* structural snapshot of the current page.
-   * Not full rrweb — just enough for replay: tag, attrs, textContent (truncated), children.
-   * Capped at depth 8 and skips script/style/svg internals.
-   */
-  function snapshotNode(node, depth) {
-    if (depth === undefined) depth = 0;
-    if (!node || depth > 8) return null;
+  var MAX_NODES = 1500;
+  var MAX_DEPTH = 12;
 
-    if (node.nodeType === 3 /* TEXT_NODE */) {
+  function maskStr(s) {
+    return s.replace(/\S/g, "•");
+  }
+
+  function snapshotNode(node, depth, mask, ctx) {
+    if (!node || depth > MAX_DEPTH || ctx.count > MAX_NODES) return null;
+
+    if (node.nodeType === 3) {
       var t = (node.textContent || "")
         .replace(/\s+/g, " ")
         .trim()
         .slice(0, 120);
-      return t ? { t: "text", v: t } : null;
+      if (!t) return null;
+      ctx.count++;
+      return { t: "text", v: mask ? maskStr(t) : t };
     }
-
-    if (node.nodeType !== 1 /* ELEMENT_NODE */) return null;
+    if (node.nodeType !== 1) return null;
 
     var tag = node.tagName.toLowerCase();
-    if (tag === "script" || tag === "noscript") return null;
+    if (
+      tag === "script" ||
+      tag === "noscript" ||
+      tag === "template" ||
+      tag === "style"
+    )
+      return null;
+    ctx.count++;
+
+    // Blocked element -> empty placeholder with real dimensions
+    if (node.hasAttribute("data-clarity-block")) {
+      var r = node.getBoundingClientRect();
+      return {
+        t: "div",
+        a: {
+          style:
+            "width:" +
+            Math.round(r.width) +
+            "px;height:" +
+            Math.round(r.height) +
+            "px;background:#ccc",
+        },
+        c: [],
+      };
+    }
 
     var attrs = {};
     for (var i = 0; i < node.attributes.length; i++) {
       var a = node.attributes[i];
-      // Skip src/href for privacy — just record presence
-      if (a.name === "src" || a.name === "href") {
-        attrs[a.name] = a.value.startsWith("data:")
-          ? "[data-url]"
-          : a.value.slice(0, 120);
-      } else if (a.name === "style") {
-        attrs["style"] = a.value.slice(0, 200);
+      var n = a.name;
+      if (n === "value" || n.indexOf("on") === 0) continue; // never ship input values or inline handlers
+      if (n === "src" || n === "href") {
+        attrs[n] =
+          a.value.indexOf("data:") === 0 ? "[data-url]" : a.value.slice(0, 120);
       } else {
-        attrs[a.name] = a.value.slice(0, 200);
+        attrs[n] = a.value.slice(0, 200);
       }
     }
 
+    var childMask = mask || node.hasAttribute("data-clarity-mask");
     var children = [];
-    if (tag !== "svg") {
+    if (tag !== "svg" && tag !== "textarea") {
       for (var j = 0; j < node.childNodes.length; j++) {
-        var child = snapshotNode(node.childNodes[j], depth + 1);
+        var child = snapshotNode(node.childNodes[j], depth + 1, childMask, ctx);
         if (child) children.push(child);
       }
     }
-
     return { t: tag, a: attrs, c: children };
   }
 
   function captureSnapshot() {
     try {
-      return snapshotNode(document.documentElement);
+      return {
+        url: location.href,
+        w: window.innerWidth,
+        h: window.innerHeight,
+        dom: snapshotNode(document.documentElement, 0, MASK_TEXT, { count: 0 }),
+      };
     } catch (_) {
       return null;
     }
   }
 
-  // ── Recording frames ───────────────────────────────────────────────────────
-  var recordingId = null;
-  var frames = [];
-  var PAGE_START = Date.now();
-
-  var FRAME_TYPES = {
-    SNAPSHOT: "snapshot", // full DOM snapshot
-    MOUSE: "mouse", // mousemove
-    CLICK: "click", // click with target descriptor
-    SCROLL: "scroll", // scrollX/Y
-    INPUT: "input", // input value change (value masked by default)
-    RESIZE: "resize", // viewport size change
-    NAV: "nav", // URL change (SPA)
-    CUSTOM: "custom", // custom event
-  };
-
-  function pushFrame(type, data) {
-    frames.push({ type: type, ts: Date.now() - PAGE_START, d: data });
+  // Run heavy work when the browser is idle so it never blocks interaction
+  function idle(fn, timeout) {
+    if (window.requestIdleCallback)
+      window.requestIdleCallback(fn, { timeout: timeout || 2000 });
+    else setTimeout(fn, 200);
   }
 
-  // Mouse tracking — throttled to 1 per 50ms
-  var lastMouseTs = 0;
+  // ── Recording frames ────────────────────────────────────────────────────────
+
+  var FRAME = {
+    SNAPSHOT: "snapshot",
+    MOUSE: "mouse",
+    CLICK: "click",
+    SCROLL: "scroll",
+    INPUT: "input",
+    RESIZE: "resize",
+    NAV: "nav",
+    CUSTOM: "custom",
+  };
+
+  var PAGE_START = now();
+  var MAX_FRAMES = 2000; // memory cap if the network is down
+  var FLUSH_EVERY = 5000;
+  var frames = [];
+  var flushTimer = null;
+
+  function pushFrame(type, data) {
+    if (!RECORD) return;
+    frames.push({ type: type, ts: now() - PAGE_START, d: data });
+    if (frames.length > MAX_FRAMES) frames.shift();
+    if (frames.length >= 200) {
+      flushFrames(false);
+      return;
+    }
+    if (!flushTimer)
+      flushTimer = setTimeout(function () {
+        flushTimer = null;
+        flushFrames(false);
+      }, FLUSH_EVERY);
+  }
+
+  // Sends a batch; splits in half if it would exceed the keepalive body limit.
+  function sendFrames(batch, isFinal) {
+    if (!batch.length) return;
+    var payload = {
+      project_id: PROJECT_ID,
+      visitor_id: VISITOR_ID,
+      pageview_id: pageviewId,
+      page_start: PAGE_START,
+      frames: batch,
+      duration: now() - PAGE_START,
+      is_final: !!isFinal,
+    };
+    var size = JSON.stringify(payload).length;
+    if (size > MAX_BODY && batch.length > 1) {
+      var mid = batch.length >> 1;
+      sendFrames(batch.slice(0, mid), false);
+      sendFrames(batch.slice(mid), isFinal);
+      return;
+    }
+    var p = post("/session/frames", payload);
+    if (!isFinal && p && p.then) {
+      p.then(function (res) {
+        if (!res.ok && res.status >= 500) requeue(batch);
+      }).catch(function () {
+        requeue(batch);
+      });
+    }
+  }
+
+  function requeue(batch) {
+    frames = batch.concat(frames).slice(-MAX_FRAMES); // retry on next flush, never grow unbounded
+  }
+
+  function flushFrames(isFinal) {
+    if (flushTimer) {
+      clearTimeout(flushTimer);
+      flushTimer = null;
+    }
+    if (!frames.length && !isFinal) return;
+    sendFrames(frames.splice(0, frames.length), isFinal);
+  }
+
+  // ── Visible-time tracking (so a background tab doesn't count as "time on page")
+
+  var visibleSince = document.visibilityState === "hidden" ? null : now();
+  var visibleAccum = 0;
+
+  function visibleTime() {
+    return visibleAccum + (visibleSince ? now() - visibleSince : 0);
+  }
+  function resetVisibleTime() {
+    visibleAccum = 0;
+    visibleSince = document.visibilityState === "hidden" ? null : now();
+  }
+
+  // ── Scroll (single listener, rAF-throttled) ─────────────────────────────────
+
+  var maxScrollPct = 0;
+  var scrollQueued = false;
+  var lastScrollFrame = 0;
+
+  function sampleScroll(emitFrame) {
+    var y = window.pageYOffset || document.documentElement.scrollTop || 0;
+    var h = Math.max(
+      document.body ? document.body.scrollHeight : 0,
+      document.documentElement.scrollHeight,
+      1,
+    );
+    var pct = Math.min(100, Math.round(((y + window.innerHeight) / h) * 100));
+    if (pct > maxScrollPct) maxScrollPct = pct;
+    if (emitFrame && now() - lastScrollFrame >= 100) {
+      lastScrollFrame = now();
+      pushFrame(FRAME.SCROLL, { x: window.pageXOffset || 0, y: y });
+    }
+  }
+
   document.addEventListener(
-    "mousemove",
-    function (e) {
-      var now = Date.now();
-      if (now - lastMouseTs < 50) return;
-      lastMouseTs = now;
-      pushFrame(FRAME_TYPES.MOUSE, { x: e.clientX, y: e.clientY });
+    "scroll",
+    function () {
+      if (scrollQueued) return;
+      scrollQueued = true;
+      requestAnimationFrame(function () {
+        scrollQueued = false;
+        sampleScroll(true);
+        touch();
+      });
     },
     { passive: true },
   );
+
+  // ── Mouse / resize / input ──────────────────────────────────────────────────
+
+  var lastMouse = 0;
+  document.addEventListener(
+    "mousemove",
+    function (e) {
+      var t = now();
+      if (t - lastMouse < 50) return;
+      lastMouse = t;
+      pushFrame(FRAME.MOUSE, { x: e.clientX, y: e.clientY });
+    },
+    { passive: true },
+  );
+
+  var resizeTimer = null;
+  window.addEventListener(
+    "resize",
+    function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function () {
+        pushFrame(FRAME.RESIZE, {
+          w: window.innerWidth,
+          h: window.innerHeight,
+        });
+      }, 150);
+    },
+    { passive: true },
+  );
+
+  // Values are NEVER recorded (emails, searches, etc. are PII) — only length.
+  document.addEventListener(
+    "input",
+    function (e) {
+      var el = e.target;
+      if (!el || el.type === "password") return;
+      pushFrame(FRAME.INPUT, {
+        target: describe(el),
+        len: (el.value || "").length,
+      });
+    },
+    true,
+  );
+
+  // ── Click handling: breadcrumb + replay + rage + dead (single listener) ─────
+
+  var RAGE_WINDOW_MS = 600;
+  var RAGE_MIN_COUNT = 3;
+  var RAGE_RADIUS_PX = 30;
+  var clickHistory = [];
+
+  var INTERACTIVE_SEL =
+    "a[href],button,input,select,textarea,label,summary,[role=button],[role=link],[role=tab]," +
+    "[role=menuitem],[role=checkbox],[role=switch],[onclick],[data-action],[tabindex]";
+
+  function isInteractive(el) {
+    try {
+      if (el.closest && el.closest(INTERACTIVE_SEL)) return true; // click on a <span> inside a <button> is NOT dead
+      return window.getComputedStyle(el).cursor === "pointer"; // framework-attached handlers usually set this
+    } catch (_) {
+      return true;
+    }
+  }
+
+  function watchForDeadClick(el, e, descriptor) {
+    var urlBefore = location.href;
+    var changed = false;
+    var mo = null;
+    try {
+      mo = new MutationObserver(function () {
+        changed = true;
+      });
+      mo.observe(document.documentElement, {
+        childList: true,
+        attributes: true,
+        subtree: true,
+        characterData: true,
+      });
+    } catch (_) {}
+    setTimeout(function () {
+      if (mo) mo.disconnect();
+      var sel = window.getSelection && window.getSelection();
+      var selecting = sel && String(sel).length > 0; // user was selecting text, not "clicking a dead element"
+      if (!changed && !selecting && location.href === urlBefore) {
+        post("/track/event", {
+          project_id: PROJECT_ID,
+          type: "dead_click",
+          name: "dead_click",
+          properties: { selector: descriptor },
+          url: location.href,
+          x: e.clientX,
+          y: e.clientY,
+          selector: descriptor,
+          visitor_id: VISITOR_ID,
+        });
+      }
+    }, 300);
+  }
 
   document.addEventListener(
     "click",
     function (e) {
       var el = e.target;
-      pushFrame(FRAME_TYPES.CLICK, {
+      if (!el || el.nodeType !== 1) return;
+      var t = now();
+      var descriptor = describe(el);
+      touch();
+
+      addBreadcrumb("click", descriptor); // no textContent: it can contain names/emails
+      pushFrame(FRAME.CLICK, {
         x: e.clientX,
         y: e.clientY,
-        target: targetDescriptor(el),
+        target: descriptor,
       });
+
+      // Rage: ≥3 clicks within 600 ms inside a 30 px radius (robust to re-rendering elements)
+      clickHistory.push({ x: e.clientX, y: e.clientY, ts: t });
+      clickHistory = clickHistory.filter(function (c) {
+        return t - c.ts <= RAGE_WINDOW_MS;
+      });
+      var near = clickHistory.filter(function (c) {
+        return (
+          Math.abs(c.x - e.clientX) <= RAGE_RADIUS_PX &&
+          Math.abs(c.y - e.clientY) <= RAGE_RADIUS_PX
+        );
+      });
+
+      if (near.length >= RAGE_MIN_COUNT) {
+        if (near.length === RAGE_MIN_COUNT) {
+          // once per burst
+          post("/track/event", {
+            project_id: PROJECT_ID,
+            type: "rage_click",
+            name: "rage_click",
+            properties: { selector: descriptor, count: near.length },
+            url: location.href,
+            x: e.clientX,
+            y: e.clientY,
+            selector: descriptor,
+            visitor_id: VISITOR_ID,
+          });
+        }
+        return;
+      }
+
+      if (!isInteractive(el)) watchForDeadClick(el, e, descriptor);
     },
     true,
   );
 
-  var lastScrollTs = 0;
-  document.addEventListener(
-    "scroll",
-    function () {
-      var now = Date.now();
-      if (now - lastScrollTs < 100) return;
-      lastScrollTs = now;
-      pushFrame(FRAME_TYPES.SCROLL, { x: window.scrollX, y: window.scrollY });
-    },
-    { passive: true },
-  );
+  // ── Page views ──────────────────────────────────────────────────────────────
 
-  window.addEventListener("resize", function () {
-    pushFrame(FRAME_TYPES.RESIZE, {
-      w: window.innerWidth,
-      h: window.innerHeight,
-    });
-  });
-
-  document.addEventListener(
-    "input",
-    function (e) {
-      var el = e.target;
-      // Never record password fields
-      if (el.type === "password") return;
-      pushFrame(FRAME_TYPES.INPUT, {
-        target: targetDescriptor(el),
-        value:
-          el.type === "email" || el.type === "search" ? el.value : "[masked]",
-      });
-    },
-    true,
-  );
-
-  function targetDescriptor(el) {
-    if (!el || !el.tagName) return "unknown";
-    var tag = el.tagName.toLowerCase();
-    var id = el.id ? "#" + el.id : "";
-    var cls =
-      el.className && typeof el.className === "string"
-        ? "." + el.className.trim().split(/\s+/).slice(0, 2).join(".")
-        : "";
-    return tag + id + cls;
-  }
-
-  // ── Start recording ────────────────────────────────────────────────────────
-  function startRecording() {
-    var snapshot = captureSnapshot();
-    pushFrame(FRAME_TYPES.SNAPSHOT, snapshot);
-
-    post("/session/start", {
-      project_id: PROJECT_ID,
-      visitor_id: VISITOR_ID,
-      start_url: window.location.href,
-      user_agent: navigator.userAgent,
-      viewport_w: window.innerWidth,
-      viewport_h: window.innerHeight,
-    });
-  }
-
-  // ── Flush frames to server ─────────────────────────────────────────────────
-  function flushFrames(isFinal) {
-    if (frames.length === 0 && !isFinal) return;
-    var toSend = frames.splice(0, frames.length);
-    post("/session/frames", {
-      project_id: PROJECT_ID,
-      visitor_id: VISITOR_ID,
-      frames: toSend,
-      duration: Date.now() - PAGE_START,
-      is_final: !!isFinal,
-    });
-  }
-
-  // Flush every 5 seconds and on page unload
-  var flushInterval = setInterval(function () {
-    flushFrames(false);
-  }, 5000);
-
-  window.addEventListener("pagehide", function () {
-    flushFrames(true);
-  });
-  window.addEventListener("beforeunload", function () {
-    flushFrames(true);
-  });
-
-  // ── Page view tracking ─────────────────────────────────────────────────────
-  var pageViewStart = Date.now();
+  var pageviewId = uuid();
+  var pageviewUrl = "";
+  var lastSentDuration = -1;
+  var lastSentScroll = -1;
 
   function trackPageView(url, referrer) {
+    pageviewId = uuid();
+    pageviewUrl = url;
+    lastSentDuration = lastSentScroll = -1;
+    maxScrollPct = 0;
+    resetVisibleTime();
+    sampleScroll(false);
+
     post("/track/pageview", {
       project_id: PROJECT_ID,
+      pageview_id: pageviewId,
       url: url,
       referrer: referrer || document.referrer || null,
+      title: clip(document.title || "", 200),
       visitor_id: VISITOR_ID,
     });
   }
 
-  // Track initial page view
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", function () {
-      trackPageView(window.location.href);
-      startRecording();
+  // Idempotent: keyed by pageview_id and skipped when nothing changed,
+  // so hidden → pagehide → beforeunload sends ONE update, not three.
+  function finalizePageView() {
+    if (!pageviewUrl) return;
+    sampleScroll(false);
+    var duration = visibleTime();
+    if (duration === lastSentDuration && maxScrollPct === lastSentScroll)
+      return;
+    lastSentDuration = duration;
+    lastSentScroll = maxScrollPct;
+    post("/track/pageview", {
+      project_id: PROJECT_ID,
+      pageview_id: pageviewId,
+      url: pageviewUrl,
+      referrer: null,
+      visitor_id: VISITOR_ID,
+      duration: duration,
+      max_scroll_y: maxScrollPct,
+      _update: true,
     });
-  } else {
-    trackPageView(window.location.href);
-    startRecording();
   }
 
-  // SPA navigation detection (History API)
+  // ── Recording start ─────────────────────────────────────────────────────────
+
+  function takeSnapshot() {
+    if (!RECORD) return;
+    idle(function () {
+      var snap = captureSnapshot();
+      if (snap) pushFrame(FRAME.SNAPSHOT, snap);
+    });
+  }
+
+  function start() {
+    trackPageView(location.href);
+    if (session.isNew) {
+      post("/session/start", {
+        project_id: PROJECT_ID,
+        visitor_id: VISITOR_ID,
+        start_url: location.href,
+        user_agent: navigator.userAgent,
+        viewport_w: window.innerWidth,
+        viewport_h: window.innerHeight,
+        sampled: RECORD,
+      });
+    }
+    // Wait for load so JS-rendered content is actually in the snapshot
+    if (document.readyState === "complete") takeSnapshot();
+    else
+      window.addEventListener("load", function () {
+        setTimeout(takeSnapshot, 300);
+      });
+  }
+
+  if (document.readyState === "loading")
+    document.addEventListener("DOMContentLoaded", start);
+  else start();
+
+  // ── SPA navigation (only on real URL changes) ───────────────────────────────
+
   (function () {
     var origPush = history.pushState;
     var origReplace = history.replaceState;
+    var currentUrl = location.href;
+
     function onNav() {
+      var next = location.href;
+      if (next === currentUrl) return; // replaceState is often called with the same URL (routers, analytics libs)
+      finalizePageView();
       flushFrames(false);
-      pushFrame(FRAME_TYPES.NAV, { url: window.location.href });
-      trackPageView(window.location.href);
+      var prev = currentUrl;
+      currentUrl = next;
+      pushFrame(FRAME.NAV, { url: next });
+      trackPageView(next, prev);
+      setTimeout(takeSnapshot, 500); // new view → new snapshot, otherwise replay shows the old page
     }
+
     history.pushState = function () {
-      origPush.apply(history, arguments);
+      var r = origPush.apply(this, arguments);
       onNav();
+      return r;
     };
     history.replaceState = function () {
-      origReplace.apply(history, arguments);
+      var r = origReplace.apply(this, arguments);
       onNav();
+      return r;
     };
     window.addEventListener("popstate", onNav);
   })();
 
-  // ── Error tracking ─────────────────────────────────────────────────────────
-  function sendError(message, stack, type, url, line, col) {
-    // Flush current frames so the recording is up-to-date
-    flushFrames(false);
+  // ── Lifecycle: ONE exit path ────────────────────────────────────────────────
 
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "hidden") {
+      if (visibleSince) {
+        visibleAccum += now() - visibleSince;
+        visibleSince = null;
+      }
+      finalizePageView();
+      flushFrames(false);
+    } else {
+      visibleSince = now();
+      touch();
+    }
+  });
+  window.addEventListener("pagehide", function () {
+    finalizePageView();
+    flushFrames(true);
+  });
+  // (beforeunload removed: pagehide + visibilitychange cover it and avoid duplicate sends / bfcache issues)
+
+  // ── Errors (deduped + rate-limited) ─────────────────────────────────────────
+
+  var MAX_ERRORS_PER_PAGE = 20;
+  var errorCount = 0;
+  var seenErrors = {};
+
+  function sendError(message, stack, type, url, line, col) {
+    message = clip(message || "Unknown error", 500);
+    if (/ResizeObserver loop/.test(message)) return; // benign browser noise
+    var key = message + "|" + line + "|" + col;
+    if (seenErrors[key] || errorCount >= MAX_ERRORS_PER_PAGE) return; // a render loop must not DDoS your ingest
+    seenErrors[key] = true;
+    errorCount++;
+
+    flushFrames(false);
     post("/track/error", {
       project_id: PROJECT_ID,
       message: message,
-      stack: stack || null,
+      stack: stack ? clip(stack, 4000) : null,
       type: type || "error",
-      url: url || window.location.href,
+      url: url || location.href,
       line: line || null,
       col: col || null,
       visitor_id: VISITOR_ID,
@@ -394,50 +774,314 @@
   }
 
   window.addEventListener("error", function (e) {
-    var stack = e.error && e.error.stack ? e.error.stack : null;
+    if (!e.message) return; // resource load errors (img/script 404) bubble differently; ignore here
     addBreadcrumb("error", e.message);
-    sendError(e.message, stack, "error", e.filename, e.lineno, e.colno);
+    sendError(
+      e.message,
+      e.error && e.error.stack,
+      "error",
+      e.filename,
+      e.lineno,
+      e.colno,
+    );
   });
 
   window.addEventListener("unhandledrejection", function (e) {
-    var msg = e.reason
-      ? e.reason.message || String(e.reason)
-      : "Unhandled Promise rejection";
-    var stack = e.reason && e.reason.stack ? e.reason.stack : null;
+    var r = e.reason;
+    var msg = r ? r.message || String(r) : "Unhandled Promise rejection";
     addBreadcrumb("unhandledrejection", msg);
-    sendError(msg, stack, "unhandledrejection");
+    sendError(msg, r && r.stack, "unhandledrejection");
   });
 
-  // ── Custom event API ───────────────────────────────────────────────────────
-  window.clarity = window.clarity || {};
+  // ── Public API ──────────────────────────────────────────────────────────────
 
-  /**
-   * Track a custom event.
-   * clarity.track("purchase", { amount: 99, currency: "USD" })
-   */
-  window.clarity.track = function (name, properties) {
-    pushFrame(FRAME_TYPES.CUSTOM, { name: name, props: properties || {} });
+  var api = (window.clarity = window.clarity || {});
+
+  api.track = function (name, properties) {
+    pushFrame(FRAME.CUSTOM, { name: name, props: properties || {} });
     post("/track/event", {
       project_id: PROJECT_ID,
       type: "custom",
       name: name,
       properties: properties || {},
-      url: window.location.href,
+      url: location.href,
       visitor_id: VISITOR_ID,
     });
   };
 
-  /**
-   * Identify the current visitor.
-   * clarity.identify("user_123", { email: "user@example.com" })
-   */
-  window.clarity.identify = function (userId, traits) {
+  api.identify = function (userId, traits) {
     post("/track/identify", {
       project_id: PROJECT_ID,
       user_id: userId,
       visitor_id: VISITOR_ID,
-      session_id: SESSION_ID,
       traits: traits || {},
     });
   };
+
+  api.flush = function () {
+    finalizePageView();
+    flushFrames(false);
+  };
+
+  // Consent hooks: call clarity.optOut() from your cookie banner
+  api.optOut = function () {
+    lsSet(OPT_KEY, "1");
+    optedOut = true;
+    RECORD = false;
+    frames = [];
+  };
+  api.optIn = function () {
+    try {
+      localStorage.removeItem(OPT_KEY);
+    } catch (_) {}
+  };
+
+  // ── Tour engine ─────────────────────────────────────────────────────────────
+  //
+  // Renders a multi-step product tour on top of the page.
+  // Dims everything, highlights the target element, shows a card with next/back.
+  //
+  // Usage:
+  //   clarity.tour([
+  //     { target: "#signup-btn",  title: "Get started",   body: "Click here to create your account.", placement: "bottom" },
+  //     { target: ".pricing",     title: "Choose a plan", body: "Pick the one that fits your team.",  placement: "right"  },
+  //     { title: "You're all set!", body: "Let's go 🎉",  placement: "center" },
+  //   ], { onComplete: () => console.log("tour done") });
+  //
+  // Options:
+  //   onComplete  – called when the user finishes or skips all steps
+  //   onSkip      – called when the user clicks "Skip tour"
+  //   storageKey  – localStorage key used to remember completion (default: "clarity_tour")
+  //   forceShow   – if true, shows even if already completed
+
+  api.tour = (function () {
+    var PREFIX = "_clr_tour_";
+
+    // ── Styles injected once ───────────────────────────────────────────────────
+    var stylesInjected = false;
+    function ensureStyles() {
+      if (stylesInjected) return;
+      stylesInjected = true;
+      var css = [
+        ".__clr-overlay{position:fixed;inset:0;z-index:2147483640;pointer-events:none;}",
+        ".__clr-dim{background:rgba(0,0,0,0.55);position:fixed;transition:opacity .25s;pointer-events:all;}",
+        ".__clr-spotlight{position:fixed;border-radius:8px;box-shadow:0 0 0 9999px rgba(0,0,0,0.55);pointer-events:none;transition:all .3s cubic-bezier(.4,0,.2,1);}",
+        ".__clr-card{position:fixed;z-index:2147483646;background:#fff;color:#18181b;border-radius:14px;padding:22px 24px 18px;max-width:320px;min-width:240px;box-shadow:0 8px 40px rgba(0,0,0,.22),0 0 0 1px rgba(0,0,0,.06);font-family:system-ui,sans-serif;transition:all .3s cubic-bezier(.4,0,.2,1);}",
+        "@media(prefers-color-scheme:dark){.__clr-card{background:#1c1c1e;color:#f4f4f5;box-shadow:0 8px 40px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.08);}}",
+        ".__clr-card h3{margin:0 0 8px;font-size:15px;font-weight:700;line-height:1.3;}",
+        ".__clr-card p{margin:0 0 18px;font-size:13px;line-height:1.6;color:#52525b;}",
+        "@media(prefers-color-scheme:dark){.__clr-card p{color:#a1a1aa;}}",
+        ".__clr-step-dots{display:flex;align-items:center;gap:5px;flex:1;}",
+        ".__clr-dot{width:6px;height:6px;border-radius:50%;background:#d4d4d8;transition:background .2s,width .2s;}",
+        ".__clr-dot.__clr-dot-active{background:#6366f1;width:18px;border-radius:99px;}",
+        ".__clr-btn-row{display:flex;align-items:center;gap:8px;margin-top:6px;}",
+        ".__clr-btn{border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .15s;}",
+        ".__clr-btn-primary{background:#6366f1;color:#fff;}",
+        ".__clr-btn-primary:hover{opacity:.88;}",
+        ".__clr-btn-secondary{background:#f4f4f5;color:#3f3f46;}",
+        ".__clr-btn-secondary:hover{background:#e4e4e7;}",
+        "@media(prefers-color-scheme:dark){.__clr-btn-secondary{background:#27272a;color:#d4d4d8;}.__clr-btn-secondary:hover{background:#3f3f46;}}",
+        ".__clr-skip{margin-left:auto;font-size:11px;color:#a1a1aa;background:none;border:none;cursor:pointer;padding:4px;}",
+        ".__clr-skip:hover{color:#6366f1;}",
+        ".__clr-arrow{position:absolute;width:10px;height:10px;background:inherit;transform:rotate(45deg);}",
+        ".__clr-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#6366f1;margin-bottom:8px;}",
+        ".__clr-badge-dot{width:6px;height:6px;border-radius:50%;background:#6366f1;}",
+      ].join("");
+      var st = document.createElement("style");
+      st.textContent = css;
+      document.head.appendChild(st);
+    }
+
+    // ── DOM helpers ────────────────────────────────────────────────────────────
+    function el(tag, cls, html) {
+      var e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (html) e.innerHTML = html;
+      return e;
+    }
+
+    function rect(target) {
+      if (!target) return null;
+      var r = target.getBoundingClientRect();
+      return { top: r.top, left: r.left, width: r.width, height: r.height };
+    }
+
+    var PAD = 10; // px padding around spotlight
+
+    function spotlightStyle(r) {
+      if (!r) return { top: "50%", left: "50%", width: "0", height: "0", opacity: "0" };
+      return {
+        top:    (r.top    - PAD) + "px",
+        left:   (r.left   - PAD) + "px",
+        width:  (r.width  + PAD * 2) + "px",
+        height: (r.height + PAD * 2) + "px",
+      };
+    }
+
+    var CARD_W = 320;
+    var CARD_H = 160; // estimated
+
+    function cardPosition(r, placement, vpW, vpH) {
+      // placement: top | bottom | left | right | center | auto
+      var cx, cy, arrowClass;
+
+      if (!r || placement === "center") {
+        return { top: "50%", left: "50%", transform: "translate(-50%,-50%)" };
+      }
+
+      var GAP = 18;
+      var pl = placement;
+
+      // auto-resolve if not enough room
+      if (pl === "auto" || !pl) {
+        pl = r.top > vpH / 2 ? "top" : "bottom";
+        if (r.left > vpW * 0.6) pl = "left";
+        if (r.left < vpW * 0.25) pl = "right";
+      }
+
+      if (pl === "bottom") {
+        cx = r.left + r.width / 2 - CARD_W / 2;
+        cy = r.top + r.height + PAD + GAP;
+      } else if (pl === "top") {
+        cx = r.left + r.width / 2 - CARD_W / 2;
+        cy = r.top - PAD - GAP - CARD_H;
+      } else if (pl === "right") {
+        cx = r.left + r.width + PAD + GAP;
+        cy = r.top + r.height / 2 - CARD_H / 2;
+      } else { // left
+        cx = r.left - PAD - GAP - CARD_W;
+        cy = r.top + r.height / 2 - CARD_H / 2;
+      }
+
+      // clamp inside viewport
+      cx = Math.max(8, Math.min(cx, vpW - CARD_W - 8));
+      cy = Math.max(8, Math.min(cy, vpH - CARD_H - 8));
+
+      return { top: cy + "px", left: cx + "px" };
+    }
+
+    // ── Core tour runner ───────────────────────────────────────────────────────
+    function run(steps, opts) {
+      opts = opts || {};
+      var storageKey = PREFIX + (opts.storageKey || "default");
+
+      if (!opts.forceShow) {
+        try { if (localStorage.getItem(storageKey) === "1") { if (opts.onComplete) opts.onComplete(); return; } } catch (_) {}
+      }
+
+      if (!steps || !steps.length) return;
+      ensureStyles();
+
+      var idx = 0;
+      var overlay, spotlight, card, dimEl;
+
+      // ── Build skeleton ───────────────────────────────────────────────────────
+      overlay = el("div", "__clr-overlay");
+
+      dimEl = el("div", "__clr-dim");
+      dimEl.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:2147483641;";
+      overlay.appendChild(dimEl);
+
+      spotlight = el("div", "__clr-spotlight");
+      spotlight.style.position = "fixed";
+      spotlight.style.zIndex = "2147483643";
+      overlay.appendChild(spotlight);
+
+      card = el("div", "__clr-card");
+      card.style.zIndex = "2147483646";
+      overlay.appendChild(card);
+
+      document.body.appendChild(overlay);
+
+      function getTarget(step) {
+        if (!step.target) return null;
+        try { return document.querySelector(step.target); } catch (_) { return null; }
+      }
+
+      function renderStep() {
+        var step    = steps[idx];
+        var target  = getTarget(step);
+        var vpW     = window.innerWidth;
+        var vpH     = window.innerHeight;
+
+        // Scroll target into view
+        if (target) {
+          target.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+        }
+
+        // Re-measure after scroll (small delay)
+        setTimeout(function () {
+          var r = rect(target);
+
+          // Spotlight
+          var ss = spotlightStyle(r);
+          Object.assign(spotlight.style, ss);
+          spotlight.style.transition = "all .3s cubic-bezier(.4,0,.2,1)";
+
+          if (!r) {
+            // No target → no spotlight, full dim
+            spotlight.style.boxShadow = "none";
+            dimEl.style.opacity = "1";
+          } else {
+            spotlight.style.boxShadow = "0 0 0 9999px rgba(0,0,0,0.55)";
+            dimEl.style.opacity = "0"; // spotlight handles the dim
+          }
+
+          // Card position
+          var pos = cardPosition(r, step.placement, vpW, vpH);
+          Object.assign(card.style, pos);
+
+          // Card content
+          var stepNum   = idx + 1;
+          var stepTotal = steps.length;
+          var isLast    = idx === stepTotal - 1;
+          var isFirst   = idx === 0;
+
+          var dots = steps.map(function (_, i) {
+            return '<span class="__clr-dot' + (i === idx ? " __clr-dot-active" : "") + '"></span>';
+          }).join("");
+
+          card.innerHTML =
+            '<div class="__clr-badge"><span class="__clr-badge-dot"></span>Step ' + stepNum + ' of ' + stepTotal + '</div>' +
+            '<h3>' + (step.title || "") + '</h3>' +
+            '<p>'  + (step.body  || "") + '</p>' +
+            '<div class="__clr-step-dots">' + dots + '</div>' +
+            '<div class="__clr-btn-row">' +
+              (!isFirst ? '<button class="__clr-btn __clr-btn-secondary" id="__clr-back">← Back</button>' : '') +
+              '<button class="__clr-btn __clr-btn-primary" id="__clr-next">' + (isLast ? "Done ✓" : "Next →") + '</button>' +
+              '<button class="__clr-skip" id="__clr-skip">Skip tour</button>' +
+            '</div>';
+
+          // Wire buttons
+          var nextBtn = document.getElementById("__clr-next");
+          var backBtn = document.getElementById("__clr-back");
+          var skipBtn = document.getElementById("__clr-skip");
+
+          if (nextBtn) nextBtn.onclick = function () {
+            if (isLast) { finish(false); } else { idx++; renderStep(); }
+          };
+          if (backBtn) backBtn.onclick = function () { idx--; renderStep(); };
+          if (skipBtn) skipBtn.onclick = function () { finish(true); };
+        }, target ? 300 : 0);
+      }
+
+      function finish(skipped) {
+        if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        try { localStorage.setItem(storageKey, "1"); } catch (_) {}
+        if (skipped && opts.onSkip)     opts.onSkip();
+        if (!skipped && opts.onComplete) opts.onComplete();
+      }
+
+      // Escape key exits
+      function onKey(e) {
+        if (e.key === "Escape") { finish(true); document.removeEventListener("keydown", onKey); }
+      }
+      document.addEventListener("keydown", onKey);
+
+      renderStep();
+    }
+
+    return run;
+  })();
+
 })(window, document);
