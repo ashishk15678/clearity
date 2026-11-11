@@ -38,25 +38,9 @@ async fn main() {
         .init();
 
     let database_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "sqlite:../app/dev.db".to_string());
+        .unwrap();
 
-    // Normalise: file:./dev.db or file:dev.db → absolute path under ../app/
-    let db_url = if database_url.starts_with("file:") {
-        let file_part = database_url.trim_start_matches("file:");
-        // If it's a bare filename or ./relative, anchor it to ../app/
-        let abs = if file_part.starts_with('/') {
-            file_part.to_string()
-        } else {
-            // Strip leading ./ if present
-            let bare = file_part.trim_start_matches("./");
-            format!("../app/{bare}")
-        };
-        format!("sqlite:{abs}")
-    } else if database_url.starts_with("sqlite:") {
-        database_url
-    } else {
-        format!("sqlite:{database_url}")
-    };
+    let db_url = database_url;
 
     tracing::info!("Connecting: {db_url}");
     let pool = db::create_pool(&db_url).await;

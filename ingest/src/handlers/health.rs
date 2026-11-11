@@ -1,10 +1,10 @@
 use axum::{Json, extract::State};
 use serde_json::{Value, json};
-use sqlx::SqlitePool;
+use sqlx::{PgPool};
 
 /// GET /health
 /// Returns 200 with service status and a DB ping.
-pub async fn health(State(pool): State<SqlitePool>) -> Json<Value> {
+pub async fn health(State(pool): State<PgPool>) -> Json<Value> {
     let db_ok = sqlx::query("SELECT 1")
         .fetch_one(&pool)
         .await

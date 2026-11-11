@@ -1,5 +1,5 @@
 use axum::{Json, extract::{Query, State}};
-use sqlx::SqlitePool;
+use sqlx::{PgPool, Row};
 
 use crate::{
     db::project_exists,
@@ -10,119 +10,155 @@ use crate::{
     },
 };
 
-// ─── GET /reports/events ──────────────────────────────────────────────────────
-
 pub async fn events_report(
-    State(pool): State<SqlitePool>,
+    State(pool): State<PgPool>,
     Query(q): Query<ReportQuery>,
 ) -> AppResult<Json<EventsReport>> {
     project_exists(&pool, &q.project_id).await?;
 
-    let since = format!("-{} days", q.days);
-    let limit = q.limit as i64;
-
-    let total = sqlx::query_scalar!(
-        "SELECT COUNT(*) FROM event WHERE projectId = ? AND createdAt >= datetime('now', ?)",
-        q.project_id, since,
+    // Interval arithmetic without make_interval: multiply days by an interval literal
+    let total: i64 = sqlx::query_scalar(
+        r#"SELECT COUNT(*)::bigint FROM event
+           WHERE "projectId" = $1
+             AND "createdAt" >= NOW() - ($2 || ' days')::interval"#,
     )
+    .bind(&q.project_id)
+    .bind(q.days.to_string())
     .fetch_one(&pool)
     .await?;
 
-    let by_name_rows = sqlx::query!(
-        r#"SELECT name, COUNT(*) as count FROM event
-           WHERE projectId = ? AND createdAt >= datetime('now', ?)
-           GROUP BY name ORDER BY count DESC LIMIT ?"#,
-        q.project_id, since, limit,
+    let by_name_rows = sqlx::query(
+        r#"SELECT name, COUNT(*)::bigint AS count FROM event
+           WHERE "projectId" = $1
+             AND "createdAt" >= NOW() - ($2 || ' days')::interval
+           GROUP BY name
+           ORDER BY count DESC
+           LIMIT $3"#,
     )
+    .bind(&q.project_id)
+    .bind(q.days.to_string())
+    .bind(q.limit as i64)
     .fetch_all(&pool)
     .await?;
 
-    let by_name = by_name_rows.into_iter()
-        .map(|r| EventSummaryRow { name: r.name, count: r.count })
-        .collect();
-
-    let recent_rows = sqlx::query!(
-        r#"SELECT id, type, name, properties, url, visitorId,
-                  CAST(createdAt AS TEXT) as "createdAt", projectId
-           FROM event
-           WHERE projectId = ? AND createdAt >= datetime('now', ?)
-           ORDER BY createdAt DESC LIMIT ?"#,
-        q.project_id, since, limit,
-    )
-    .fetch_all(&pool)
-    .await?;
-
-    let recent = recent_rows.into_iter()
-        .map(|r| EventRow {
-            id: r.id,
-            r#type: r.r#type,
-            name: r.name,
-            properties: r.properties,
-            url: r.url,
-            visitor_id: r.visitorId,
-            created_at: r.createdAt,
-            project_id: r.projectId,
+    let by_name = by_name_rows
+        .iter()
+        .map(|r| EventSummaryRow {
+            name:  r.get("name"),
+            count: r.get("count"),
         })
         .collect();
 
-    Ok(Json(EventsReport { project_id: q.project_id, days: q.days, total, by_name, recent }))
+    let recent_rows = sqlx::query(
+        r#"SELECT id, type, name, properties, url, "visitorId",
+                  "createdAt"::text AS created_at, "projectId"
+           FROM event
+           WHERE "projectId" = $1
+             AND "createdAt" >= NOW() - ($2 || ' days')::interval
+           ORDER BY "createdAt" DESC
+           LIMIT $3"#,
+    )
+    .bind(&q.project_id)
+    .bind(q.days.to_string())
+    .bind(q.limit as i64)
+    .fetch_all(&pool)
+    .await?;
+
+    let recent = recent_rows
+        .iter()
+        .map(|r| EventRow {
+            id:         r.get("id"),
+            r#type:     r.get("type"),
+            name:       r.get("name"),
+            properties: r.get("properties"),
+            url:        r.get("url"),
+            visitor_id: r.get("visitorId"),
+            created_at: r.get::<Option<String>, _>("created_at").unwrap_or_default(),
+            project_id: r.get("projectId"),
+        })
+        .collect();
+
+    Ok(Json(EventsReport {
+        project_id: q.project_id,
+        days:       q.days,
+        total,
+        by_name,
+        recent,
+    }))
 }
 
-// ─── GET /reports/pageviews ───────────────────────────────────────────────────
-
 pub async fn pageviews_report(
-    State(pool): State<SqlitePool>,
+    State(pool): State<PgPool>,
     Query(q): Query<ReportQuery>,
 ) -> AppResult<Json<PageViewsReport>> {
     project_exists(&pool, &q.project_id).await?;
 
-    let since = format!("-{} days", q.days);
-    let limit = q.limit as i64;
-
-    let total = sqlx::query_scalar!(
-        "SELECT COUNT(*) FROM page_view WHERE projectId = ? AND createdAt >= datetime('now', ?)",
-        q.project_id, since,
+    let total: i64 = sqlx::query_scalar(
+        r#"SELECT COUNT(*)::bigint FROM page_view
+           WHERE "projectId" = $1
+             AND "createdAt" >= NOW() - ($2 || ' days')::interval"#,
     )
+    .bind(&q.project_id)
+    .bind(q.days.to_string())
     .fetch_one(&pool)
     .await?;
 
-    // Group by `path` (clean path) rather than full URL
-    let top_rows = sqlx::query!(
-        r#"SELECT path as url, COUNT(*) as count FROM page_view
-           WHERE projectId = ? AND createdAt >= datetime('now', ?)
-           GROUP BY path ORDER BY count DESC LIMIT ?"#,
-        q.project_id, since, limit,
+    let top_rows = sqlx::query(
+        r#"SELECT path AS url, COUNT(*)::bigint AS count FROM page_view
+           WHERE "projectId" = $1
+             AND "createdAt" >= NOW() - ($2 || ' days')::interval
+           GROUP BY path
+           ORDER BY count DESC
+           LIMIT $3"#,
     )
+    .bind(&q.project_id)
+    .bind(q.days.to_string())
+    .bind(q.limit as i64)
     .fetch_all(&pool)
     .await?;
 
-    let top_pages = top_rows.into_iter()
-        .map(|r| PageViewSummaryRow { url: r.url, count: r.count })
-        .collect();
-
-    let recent_rows = sqlx::query!(
-        r#"SELECT id, url, path, referrer, visitorId, duration,
-                  CAST(createdAt AS TEXT) as "createdAt", projectId
-           FROM page_view
-           WHERE projectId = ? AND createdAt >= datetime('now', ?)
-           ORDER BY createdAt DESC LIMIT ?"#,
-        q.project_id, since, limit,
-    )
-    .fetch_all(&pool)
-    .await?;
-
-    let recent = recent_rows.into_iter()
-        .map(|r| PageViewRow {
-            id: r.id,
-            url: r.url,
-            path: r.path,
-            referrer: r.referrer,
-            visitor_id: r.visitorId,
-            duration: r.duration,
-            created_at: r.createdAt,
-            project_id: r.projectId,
+    let top_pages = top_rows
+        .iter()
+        .map(|r| PageViewSummaryRow {
+            url:   r.get("url"),
+            count: r.get("count"),
         })
         .collect();
 
-    Ok(Json(PageViewsReport { project_id: q.project_id, days: q.days, total, top_pages, recent }))
+    let recent_rows = sqlx::query(
+        r#"SELECT id, url, path, referrer, "visitorId", duration,
+                  "createdAt"::text AS created_at, "projectId"
+           FROM page_view
+           WHERE "projectId" = $1
+             AND "createdAt" >= NOW() - ($2 || ' days')::interval
+           ORDER BY "createdAt" DESC
+           LIMIT $3"#,
+    )
+    .bind(&q.project_id)
+    .bind(q.days.to_string())
+    .bind(q.limit as i64)
+    .fetch_all(&pool)
+    .await?;
+
+    let recent = recent_rows
+        .iter()
+        .map(|r| PageViewRow {
+            id:         r.get("id"),
+            url:        r.get("url"),
+            path:       r.get("path"),
+            referrer:   r.get("referrer"),
+            visitor_id: r.get("visitorId"),
+            duration:   r.get("duration"),
+            created_at: r.get::<Option<String>, _>("created_at").unwrap_or_default(),
+            project_id: r.get("projectId"),
+        })
+        .collect();
+
+    Ok(Json(PageViewsReport {
+        project_id: q.project_id,
+        days:       q.days,
+        total,
+        top_pages,
+        recent,
+    }))
 }

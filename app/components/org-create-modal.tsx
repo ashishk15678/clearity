@@ -45,13 +45,10 @@ export function OrgCreateModal() {
   };
 
   return (
-    /* 
-      BACKGROUND WRAPPER
-      1. bg-blue-900 provides the solid blue base color.
-      2. bg-[url(...)] points to your pattern image (place it in the /public folder).
-      3. bg-blend-soft-light or bg-blend-overlay blends the pattern into the blue color.
-    */
-    <div className="flex min-h-screen w-full items-center justify-center p-4 bg-blue-900 bg-[url('/indian-wildlife-pattern.png')] bg-repeat bg-blend-soft-light">
+    <div
+      className="flex min-h-screen w-full items-center justify-center p-4 bg-primary/90"
+      style={{ backgroundImage: "radial-gradient(circle at 30% 50%, hsl(220 80% 25%), hsl(220 60% 15%))" }}
+    >
       
       {/* Actual Modal Card */}
       <div className="relative z-10 w-full max-w-md rounded-2xl bg-card border border-border shadow-2xl p-8 space-y-6">

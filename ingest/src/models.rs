@@ -12,8 +12,8 @@ pub struct TrackEventPayload {
     pub properties: serde_json::Value,
     pub url: Option<String>,
     pub selector: Option<String>,
-    pub x: Option<i64>,
-    pub y: Option<i64>,
+    pub x: Option<i32>,
+    pub y: Option<i32>,
     pub visitor_id: Option<String>,
     pub user_id: Option<String>,
     pub recording_id: Option<String>,
@@ -30,8 +30,8 @@ pub struct TrackPageViewPayload {
     pub referrer: Option<String>,
     pub visitor_id: Option<String>,
     pub user_id: Option<String>,
-    pub duration: Option<i64>,
-    pub max_scroll_y: Option<i64>,
+    pub duration: Option<i32>,
+    pub max_scroll_y: Option<i32>,
     pub recording_id: Option<String>,
 }
 
@@ -44,8 +44,8 @@ pub struct TrackErrorPayload {
     pub stack: Option<String>,
     pub r#type: Option<String>,
     pub url: Option<String>,
-    pub line: Option<i64>,
-    pub col: Option<i64>,
+    pub line: Option<i32>,
+    pub col: Option<i32>,
     pub visitor_id: Option<String>,
     pub user_agent: Option<String>,
     #[serde(default)]
@@ -60,8 +60,8 @@ pub struct SessionStartPayload {
     pub visitor_id: String,
     pub start_url: String,
     pub user_agent: Option<String>,
-    pub viewport_w: Option<i64>,
-    pub viewport_h: Option<i64>,
+    pub viewport_w: Option<i32>,
+    pub viewport_h: Option<i32>,
 }
 
 // ─── Session Frames ───────────────────────────────────────────────────────────
@@ -73,7 +73,7 @@ pub struct SessionFramesPayload {
     #[serde(default)]
     pub frames: serde_json::Value,
     #[serde(default)]
-    pub duration: i64,
+    pub duration: i32,
     pub exit_url: Option<String>,
 }
 
