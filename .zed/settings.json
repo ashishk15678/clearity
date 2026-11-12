@@ -1,0 +1,31 @@
+{
+  "languages": {
+    "Rust": {
+      "language_servers": ["rust-analyzer"]
+    },
+    "TypeScript": {
+      "language_servers": ["vtsls"]
+    }
+  },
+  "lsp": {
+    "rust-analyzer": {
+      "initialization_options": {
+        "check": {
+          "command": "clippy"
+        },
+        "cargo": {
+          "allTargets": true
+        }
+      }
+    },
+    "vtsls": {
+      "initialization_options": {
+        "typescript": {
+          "tsserver": {
+            "maxTsServerMemory": 4096
+          }
+        }
+      }
+    }
+  }
+}

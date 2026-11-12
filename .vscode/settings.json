@@ -1,0 +1,9 @@
+{
+  "rust-analyzer.check.command": "clippy",
+  "rust-analyzer.linkedProjects": ["./Cargo.toml"],
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "files.exclude": {
+    "**/target": false,
+    "**/.turbo": true
+  }
+}

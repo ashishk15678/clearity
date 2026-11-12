@@ -1,0 +1,17 @@
+{
+  "name": "@clarity-2/sdk",
+  "version": "0.1.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "bunx tsc",
+    "dev": "bunx tsc --watch",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "vitest": "^5.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}

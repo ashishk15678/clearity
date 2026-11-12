@@ -1,3 +1,4 @@
+
 ```
   Clarity Analytics SDK  
   Captures: page views (time-on-page = visible time, scroll depth), custom

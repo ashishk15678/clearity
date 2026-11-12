@@ -1,0 +1,26 @@
+[
+  {
+    "label": "Dev: All (Next + Ingest)",
+    "command": "pnpm dev",
+    "use_new_terminal": false,
+    "reveal": "always"
+  },
+  {
+    "label": "Test: All (Turbo + Cargo)",
+    "command": "pnpm test && cargo test --workspace",
+    "use_new_terminal": false,
+    "reveal": "always"
+  },
+  {
+    "label": "Build: All",
+    "command": "pnpm build && cargo build --workspace --release",
+    "use_new_terminal": false,
+    "reveal": "always"
+  },
+  {
+    "label": "Cargo: Run Ingest",
+    "command": "cargo run -p ingest",
+    "use_new_terminal": false,
+    "reveal": "always"
+  }
+]
