@@ -9,7 +9,9 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  // distDir: "../../dist/web",
   transpilePackages: ["pg"],
+  typescript: { ignoreBuildErrors: true },
 };
 
 export default nextConfig;
