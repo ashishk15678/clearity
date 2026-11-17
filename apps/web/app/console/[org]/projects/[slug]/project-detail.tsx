@@ -45,8 +45,6 @@ type ProjectWithCount = {
   };
 };
 
-// ─── Root ─────────────────────────────────────────────────────────────────────
-
 export function ProjectDetail({ project }: { project: ProjectWithCount }) {
   const [tab, setTab] = useState<Tab>("overview");
 
@@ -62,9 +60,9 @@ export function ProjectDetail({ project }: { project: ProjectWithCount }) {
   ];
 
   return (
-    <div className="flex flex-col min-h-0 flex-1">
-      <div className="border-b border-border bg-background px-5 sm:px-6 pt-5 pb-0">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-4">
+    <div className="flex flex-col min-h-0 flex-1 overflow-y-auto">
+      <div className="bg-background px-5 sm:px-6 pt-5 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
           <div className="min-w-0">
             <h2 className="text-base font-semibold text-foreground truncate">
               {project.name}
@@ -94,7 +92,7 @@ export function ProjectDetail({ project }: { project: ProjectWithCount }) {
             ].map((s) => (
               <div
                 key={s.label}
-                className="flex flex-col items-center rounded-md border border-border px-3 py-1.5 min-w-[56px]"
+                className="flex flex-col items-center rounded-md border border-border px-3 py-1.5 min-w-14"
               >
                 <span className="text-sm font-semibold tabular-nums text-foreground">
                   {s.value}
@@ -106,8 +104,9 @@ export function ProjectDetail({ project }: { project: ProjectWithCount }) {
             ))}
           </div>
         </div>
+      </div>
 
-        {/* ── Tab bar ──────────────────────────────────────────────────── */}
+      <div className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur-xs px-5 sm:px-6">
         <div className="flex gap-0 overflow-x-auto -mb-px">
           {tabs.map((t) => (
             <button
@@ -126,8 +125,8 @@ export function ProjectDetail({ project }: { project: ProjectWithCount }) {
         </div>
       </div>
 
-      {/* ── Tab panels ──────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto">
+      {/* ── Tab panels ──────────────────────────────────────────────── */}
+      <div className="flex-1">
         <div className="px-5 sm:px-6 py-6">
           {tab === "overview" && <OverviewTab projectId={project.id} />}
           {tab === "analytics" && <AnalyticsTab projectId={project.id} />}

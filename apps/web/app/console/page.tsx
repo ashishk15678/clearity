@@ -21,7 +21,7 @@ export default async function ConsolePage() {
 
   // No org → show create-org modal (full-page)
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/30 p-6">
+    <div className="flex min-h-screen items-center justify-center bg-muted/30">
       <OrgCreateModal />
     </div>
   );

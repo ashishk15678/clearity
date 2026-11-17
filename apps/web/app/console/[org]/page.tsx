@@ -190,37 +190,6 @@ export default async function ConsolePage({
                 </div>
               )}
             </div>
-
-            {/* Quick start checklist */}
-            <div className="space-y-3">
-              <SectionHeader title="Get started" />
-              <div className="rounded-lg border border-border bg-card divide-y divide-border overflow-hidden">
-                <CheckStep
-                  n={1}
-                  done={projects.length > 0}
-                  label="Create a project"
-                  href={`/console/${orgSlug}/projects`}
-                />
-                <CheckStep
-                  n={2}
-                  done={false}
-                  label="Generate an API key"
-                  href={`/console/${orgSlug}/projects`}
-                />
-                <CheckStep
-                  n={3}
-                  done={false}
-                  label="Install the SDK"
-                  href={`/console/${orgSlug}/settings`}
-                />
-                <CheckStep
-                  n={4}
-                  done={false}
-                  label="Invite your team"
-                  href={`/console/${orgSlug}/teams`}
-                />
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -262,7 +231,7 @@ function SectionHeader({
 
 function EmptyProjects({ orgSlug }: { orgSlug: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-border bg-card flex flex-col items-center justify-center py-12 text-center">
+    <div className="rounded-lg border border-dashed border-border bg-card flex flex-col items-center justify-center py-12 text-center w-full">
       <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg border border-border">
         <svg
           className="h-4 w-4 text-muted-foreground"

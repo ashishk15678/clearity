@@ -58,12 +58,7 @@ export function ProjectsList({
             {projects?.length ?? 0} project{projects?.length !== 1 ? "s" : ""}
           </p>
         </div>
-        <Button
-          variant="primary"
-          onClick={() => setOpen(true)}
-          size="lg"
-          className="font-extrabold"
-        >
+        <Button variant="primary" onClick={() => setOpen(true)} size="lg">
           <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
             <path
               fillRule="evenodd"
@@ -255,16 +250,7 @@ function CreateProjectDialog({
 
 function EmptyState({ onNew }: { onNew: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center py-24 text-center">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 dark:bg-indigo-900/20">
-        <svg
-          className="h-8 w-8 text-indigo-500"
-          viewBox="0 0 20 20"
-          fill="currentColor"
-        >
-          <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-        </svg>
-      </div>
+    <div className="flex flex-col items-center justify-center py-24 text-center bg-zinc-50 border border-border rounded-2xl">
       <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
         No projects yet
       </h3>
