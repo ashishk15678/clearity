@@ -1,0 +1,87 @@
+name: Ingest (Rust)
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "apps/ingest/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/ingest.yml"
+  pull_request:
+    branches: [main, master]
+    paths:
+      - "apps/ingest/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/ingest.yml"
+
+concurrency:
+  group: ingest-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  # ── Check + Clippy + Test ─────────────────────────────────────────────────────
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache Cargo registry + build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ". -> target"
+
+      - name: cargo fmt --check
+        run: cargo fmt --all -- --check
+
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: cargo build
+        run: cargo build --workspace
+
+      - name: cargo test
+        run: cargo test --workspace
+        # Tests that need a real DB are skipped unless DATABASE_URL is set
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+  # ── Release build ─────────────────────────────────────────────────────────────
+  release:
+    name: Release build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    needs: check
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ". -> target"
+
+      - name: Build release binary
+        run: cargo build --workspace --release
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ingest-binary
+          path: target/release/ingest
+          retention-days: 7

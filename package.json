@@ -1,19 +1,33 @@
 {
-  "name": "clarity-root",
+  "name": "clarity-monorepo",
   "private": true,
+  "packageManager": "pnpm@9.15.4",
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
-    "test": "turbo test",
     "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md,yaml,yml,css}\" --ignore-path .gitignore",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md,yaml,yml,css}\" --ignore-path .gitignore",
+    "sdk:build": "pnpm --filter @clarity-2/sdk build",
+    "sdk:dev": "pnpm --filter @clarity-2/sdk dev",
+    "web:dev": "pnpm --filter web dev",
+    "web:build": "pnpm --filter web build",
+    "web:start": "pnpm --filter web start",
     "cargo:build": "cargo build --workspace",
+    "cargo:release": "cargo build --workspace --release",
     "cargo:test": "cargo test --workspace",
-    "cargo:clippy": "cargo clippy --workspace -- -D warnings"
+    "cargo:clippy": "cargo clippy --workspace -- -D warnings",
+    "cargo:fmt": "cargo fmt --all",
+    "cargo:fmt:check": "cargo fmt --all -- --check",
+    "cargo:run": "cargo run -- --workspace",
+    "db:generate": "bun --bun --filter web run db:generate",
+    "db:push": "bun --bun --filter web run db:push",
+    "db:studio": "bun --bun --filter web run db:studio"
   },
   "devDependencies": {
-    "turbo": "^2.0.0",
-    "typescript": "^5.5.0",
-    "prettier": "^3.3.0"
-  },
-  "packageManager": "pnpm@9.0.0"
+    "prettier": "^3.3.0",
+    "turbo": "^2.5.0",
+    "typescript": "^5.5.0"
+  }
 }

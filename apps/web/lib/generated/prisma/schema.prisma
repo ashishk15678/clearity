@@ -21,6 +21,7 @@ model User {
   ownedOrganizations Organization[]       @relation("OrgOwner")
   memberships        OrganizationMember[]
   sentInvites        Invite[]             @relation("SentInvites")
+  notifications      Notification[]
 
   @@map("user")
 }
@@ -115,7 +116,8 @@ model Team {
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  members TeamMember[]
+  members       TeamMember[]
+  projectAccess TeamProjectAccess[]
 
   @@unique([organizationId, name])
   @@index([organizationId])
@@ -137,7 +139,45 @@ model TeamMember {
   @@map("team_member")
 }
 
-// ─── Invites ──────────────────────────────────────────────────────────────────
+/// Fine-grained project access granted to a whole team.
+/// Additive on top of the member's org-level role:
+///   "VIEWER" | "MEMBER" | "ADMIN"
+model TeamProjectAccess {
+  id        String   @id @default(cuid())
+  teamId    String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  /// Access level granted to all team members for this project.
+  /// "VIEWER" = read-only  "MEMBER" = can create events/keys  "ADMIN" = full project control
+  access    String   @default("VIEWER")
+  grantedAt DateTime @default(now())
+
+  @@unique([teamId, projectId])
+  @@index([teamId])
+  @@index([projectId])
+  @@map("team_project_access")
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+/// In-app notification delivered to a user.
+/// type values: "invite_received" | "invite_accepted" | "member_joined"
+///              | "error_spike" | "project_created" | "role_changed"
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  body      String
+  link      String? // optional deep-link (e.g. /console/acme/teams)
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read, createdAt(sort: Desc)])
+  @@map("notification")
+}
 
 model Invite {
   id             String       @id @default(cuid())
@@ -176,6 +216,7 @@ model Project {
   sessionRecordings SessionRecording[]
   errorGroups       ErrorGroup[]
   errorEvents       ErrorEvent[]
+  teamAccess        TeamProjectAccess[]
 
   /// Project slug only needs to be unique inside its parent Organization
   @@unique([organizationId, slug])

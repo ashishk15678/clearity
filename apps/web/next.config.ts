@@ -1,7 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  distDir:"../../dist/web",
   turbopack: {
     rules: {
       "*.css": {
@@ -10,6 +9,7 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  transpilePackages: ["pg"],
 };
 
 export default nextConfig;

@@ -59,13 +59,16 @@ export const projectsRouter = createTRPCRouter({
 
   /** Get a single project by (organizationId, slug). */
   bySlug: protectedProcedure
-    .input(z.object({ organizationId: z.string(), slug: z.string() }))
+    .input(z.object({ orgSlug: z.string(), slug: z.string() }))
     .query(async ({ ctx, input }) => {
-      await requireOrgMember(ctx.user.id, input.organizationId);
+      const org = await prisma.organization.findUniqueOrThrow({
+        where: { slug: input.orgSlug },
+      });
+      await requireOrgMember(ctx.user.id, org.id);
       return prisma.project.findUnique({
         where: {
           organizationId_slug: {
-            organizationId: input.organizationId,
+            organizationId: org.id,
             slug: input.slug,
           },
         },

@@ -28,7 +28,7 @@ export function CardHeader({
   return (
     <div
       className={cn(
-        "px-5 py-4 border-b border-zinc-200 dark:border-zinc-800",
+        "px-5 py-1 border-b border-zinc-200 dark:border-zinc-800",
         className,
       )}
     >

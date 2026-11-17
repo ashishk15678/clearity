@@ -1,0 +1,29 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    // ── Next.js: attach to running dev server ──────────────────────────────────
+    {
+      "name": "Next.js: attach",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "sourceMaps": true,
+      "resolveSourceMapLocations": ["${workspaceFolder}/apps/web/**"],
+      "skipFiles": ["<node_internals>/**"]
+    },
+
+    // ── Rust: debug ingest binary (requires CodeLLDB extension) ───────────────
+    {
+      "name": "Ingest: debug",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/target/debug/ingest",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "RUST_LOG": "ingest=debug,tower_http=debug"
+      },
+      "preLaunchTask": "Build: Ingest (debug)"
+    }
+  ]
+}

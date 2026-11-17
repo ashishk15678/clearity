@@ -1,31 +1,95 @@
 {
   "languages": {
     "Rust": {
-      "language_servers": ["rust-analyzer"]
+      "language_servers": [
+        "rust-analyzer"
+      ],
+      "format_on_save": "on",
+      "formatter": "language_server"
     },
     "TypeScript": {
-      "language_servers": ["vtsls"]
+      "language_servers": [
+        "vtsls"
+      ],
+      "format_on_save": "on",
+      "formatter": {
+        "external": {
+          "command": "prettier",
+          "arguments": [
+            "--stdin-filepath",
+            "{buffer_path}"
+          ]
+        }
+      }
+    },
+    "TSX": {
+      "language_servers": [
+        "vtsls"
+      ],
+      "format_on_save": "on",
+      "formatter": {
+        "external": {
+          "command": "prettier",
+          "arguments": [
+            "--stdin-filepath",
+            "{buffer_path}"
+          ]
+        }
+      }
+    },
+    "JSON": {
+      "format_on_save": "on",
+      "formatter": {
+        "external": {
+          "command": "prettier",
+          "arguments": [
+            "--stdin-filepath",
+            "{buffer_path}"
+          ]
+        }
+      }
     }
   },
   "lsp": {
     "rust-analyzer": {
       "initialization_options": {
+        "linkedProjects": [
+          "./Cargo.toml"
+        ],
         "check": {
-          "command": "clippy"
+          "command": "clippy",
+          "extraArgs": [
+            "--",
+            "-D",
+            "warnings"
+          ]
         },
         "cargo": {
           "allTargets": true
+        },
+        "procMacro": {
+          "enable": true
         }
       }
     },
     "vtsls": {
       "initialization_options": {
         "typescript": {
+          "tsdk": "./apps/web/node_modules/typescript/lib",
           "tsserver": {
             "maxTsServerMemory": 4096
           }
         }
       }
     }
-  }
+  },
+  "file_scan_exclusions": [
+    "**/.git",
+    "**/node_modules",
+    "**/target",
+    "**/.next",
+    "**/.turbo",
+    "**/dist",
+    "**/apps/web/lib/generated"
+  ]
 }

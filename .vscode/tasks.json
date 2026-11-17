@@ -2,21 +2,194 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Test All",
+      "label": "Dev: Web (Next.js)",
       "type": "shell",
-      "command": "pnpm test && cargo test --workspace",
-      "group": {
-        "kind": "test",
-        "isDefault": true
+      "command": "pnpm dev",
+      "options": {
+        "cwd": "${workspaceFolder}/apps/web"
+      },
+      "isBackground": true,
+      "group": "build",
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always"
+      },
+      "problemMatcher": {
+        "owner": "nextjs",
+        "pattern": {
+          "regexp": "^(.*)$",
+          "file": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "starting",
+          "endsPattern": "Ready in"
+        }
       }
     },
     {
-      "label": "Build All",
+      "label": "Dev: Ingest (Rust)",
       "type": "shell",
-      "command": "pnpm build && cargo build --workspace --release",
+      "command": "cargo run -p ingest",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "group": "build",
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always"
+      },
+      "problemMatcher": {
+        "owner": "rust",
+        "pattern": {
+          "regexp": "^(.*)$",
+          "file": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "Compiling",
+          "endsPattern": "Ingest listening"
+        }
+      }
+    },
+    {
+      "label": "Dev: All",
+      "dependsOn": [
+        "Dev: Web (Next.js)",
+        "Dev: Ingest (Rust)"
+      ],
       "group": {
         "kind": "build",
         "isDefault": true
+      }
+    },
+    // ── Build ──────────────────────────────────────────────────────────────────
+    {
+      "label": "Build: Web",
+      "type": "shell",
+      "command": "pnpm build",
+      "options": {
+        "cwd": "${workspaceFolder}/apps/web"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always"
+      },
+      "problemMatcher": "$tsc"
+    },
+    {
+      "label": "Build: Ingest (release)",
+      "type": "shell",
+      "command": "cargo build --release -p ingest",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always"
+      },
+      "problemMatcher": "$rustc"
+    },
+    {
+      "label": "Build: All",
+      "dependsOn": [
+        "Build: Web",
+        "Build: Ingest (release)"
+      ],
+      "group": "build"
+    },
+    // ── Test ───────────────────────────────────────────────────────────────────
+    {
+      "label": "Test: Rust",
+      "type": "shell",
+      "command": "cargo test --workspace",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always"
+      },
+      "problemMatcher": "$rustc"
+    },
+    // ── Lint / type-check ──────────────────────────────────────────────────────
+    {
+      "label": "Lint: Web",
+      "type": "shell",
+      "command": "pnpm exec eslint . --max-warnings 0",
+      "options": {
+        "cwd": "${workspaceFolder}/apps/web"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always"
+      },
+      "problemMatcher": "$eslint-stylish"
+    },
+    {
+      "label": "Typecheck: Web",
+      "type": "shell",
+      "command": "pnpm exec tsc --noEmit",
+      "options": {
+        "cwd": "${workspaceFolder}/apps/web"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always"
+      },
+      "problemMatcher": "$tsc"
+    },
+    {
+      "label": "Clippy: Ingest",
+      "type": "shell",
+      "command": "cargo clippy --workspace -- -D warnings",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always"
+      },
+      "problemMatcher": "$rustc"
+    },
+    {
+      "label": "Build: Ingest (debug)",
+      "type": "shell",
+      "command": "cargo build -p ingest",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "silent"
+      },
+      "problemMatcher": "$rustc"
+    },
+    // ── Database ───────────────────────────────────────────────────────────────
+    {
+      "label": "Prisma: Generate",
+      "type": "shell",
+      "command": "pnpm exec prisma generate",
+      "options": {
+        "cwd": "${workspaceFolder}/apps/web"
+      },
+      "presentation": {
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "Prisma: Push (dev DB)",
+      "type": "shell",
+      "command": "pnpm exec prisma db push",
+      "options": {
+        "cwd": "${workspaceFolder}/apps/web"
+      },
+      "presentation": {
+        "reveal": "always"
       }
     }
   ]

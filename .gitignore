@@ -1,2 +1,78 @@
-node_modules
-dist
+# Node
+node_modules/
+.pnpm-store/
+
+# Next.js 
+apps/web/.next/
+apps/web/out/
+apps/web/.vercel/
+
+# Turbo
+.turbo/
+
+# Build outputs
+dist/
+build/
+
+# Rust
+target/
+Cargo.lock          # keep only for binary crates; remove this line if you want it tracked
+**/*.rs.bk
+
+# Environment files — NEVER commit secrets
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test.local
+.env.production
+.env.production.local
+# Keep example files committed
+!.env.example
+!**/.env.example
+
+# Databases
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Editors
+.idea/
+*.swp
+*.swo
+*~
+# Keep .vscode and .zed tracked (team shared configs)
+!.vscode/
+!.zed/
+
+# Prisma
+apps/web/lib/generated/
+
+# Test / coverage
+coverage/
+.nyc_output/
+*.lcov
+
+# Misc
+*.tsbuildinfo
+.cache/
+tmp/
+temp/

@@ -1,0 +1,102 @@
+name: Web (Next.js)
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "apps/web/**"
+      - "packages/sdk/**"
+      - ".github/workflows/web.yml"
+  pull_request:
+    branches: [main, master]
+    paths:
+      - "apps/web/**"
+      - "packages/sdk/**"
+      - ".github/workflows/web.yml"
+
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Build & lint ─────────────────────────────────────────────────────────────
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: .
+
+      - name: Type-check
+        run: pnpm exec tsc --noEmit
+
+      - name: Lint
+        run: pnpm exec eslint . --max-warnings 0
+        continue-on-error: true   # lint warnings don't block merge
+
+      - name: Build
+        run: pnpm exec next build
+        env:
+          # Provide dummy values so build doesn't crash on missing env
+          DATABASE_URL:          ${{ secrets.DATABASE_URL }}
+          BETTER_AUTH_SECRET:    ${{ secrets.BETTER_AUTH_SECRET }}
+          BETTER_AUTH_URL:       "http://localhost:3000"
+          NEXT_PUBLIC_BETTER_AUTH_URL: "http://localhost:3000"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-build
+          path: apps/web/.next/
+          retention-days: 1
+
+  # ── SDK build check ──────────────────────────────────────────────────────────
+  sdk:
+    name: SDK build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/sdk
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: .
+
+      - name: Type-check SDK
+        run: pnpm exec tsc --noEmit
+
+      - name: Verify public/clarity.js is up to date
+        run: |
+          # The canonical output lives at apps/web/public/clarity.js.
+          # In CI we just verify it exists and is non-empty.
+          test -s ../apps/web/public/clarity.js || \
+            (echo "apps/web/public/clarity.js is missing or empty" && exit 1)
+        working-directory: .

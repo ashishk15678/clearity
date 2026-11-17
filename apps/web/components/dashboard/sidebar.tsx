@@ -5,8 +5,6 @@ import { useParams, usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { UserAvatar } from "@/components/user-avatar";
 
-// ─── Logo ─────────────────────────────────────────────────────────────────────
-
 function ClarityLogo() {
   return (
     <svg viewBox="0 0 20 20" className="h-5 w-5 shrink-0" fill="none">
@@ -21,8 +19,6 @@ function ClarityLogo() {
     </svg>
   );
 }
-
-// ─── Icon primitive ───────────────────────────────────────────────────────────
 
 function Icon({ d, d2, evenOdd }: { d: string; d2?: string; evenOdd?: boolean }) {
   return (
@@ -123,7 +119,10 @@ export function Sidebar({ orgSlug }: { orgSlug: string }) {
     exact
       ? pathname === href
       : pathname === href || pathname.startsWith(href + "/") || pathname.startsWith(href + "?");
-
+   const params = useParams<{ slug?: string }>()
+  
+  const currentProject = params?.slug
+  const isInsideProject = Boolean(currentProject)
   return (
     <aside className="flex h-screen w-[210px] shrink-0 flex-col border-r border-border bg-sidebar">
       {/* ── Logo / brand ─────────────────────────────────────────────────── */}
@@ -171,14 +170,14 @@ export function Sidebar({ orgSlug }: { orgSlug: string }) {
         <Link
           href={`${base}/settings`}
           className={cn(
-            "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors",
+            "flex items-center justify-between gap-2.5 rounded-md px-2.5 py-0.5wazzzzd text-sm transition-colors",
             isActive(`${base}/settings`)
               ? "bg-accent text-accent-foreground"
               : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
           )}
         >
-          <UserAvatar name={orgSlug} size={22} />
           <span className="truncate text-xs font-medium">{orgSlug}</span>
+          <UserAvatar name={orgSlug} size={40} />
         </Link>
       </div>
     </aside>

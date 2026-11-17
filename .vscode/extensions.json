@@ -1,0 +1,19 @@
+{
+  "recommendations": [
+    "rust-lang.rust-analyzer",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+    "austenc.tailwind-docs",
+    "github.vscode-pull-request-github",
+    "eamodio.gitlens",
+    "tamasfe.even-better-toml",
+    "redhat.vscode-yaml",
+    "prisma.prisma",
+    "usernamehw.errorlens",
+    "streetsidesoftware.code-spell-checker"
+  ],
+  "unwantedRecommendations": [
+    "rust-lang.rust"
+  ]
+}

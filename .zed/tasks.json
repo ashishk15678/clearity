@@ -1,25 +1,88 @@
 [
   {
-    "label": "Dev: All (Next + Ingest)",
+    "label": "Dev: Web",
     "command": "pnpm dev",
-    "use_new_terminal": false,
-    "reveal": "always"
+    "cwd": "$ZED_WORKTREE_ROOT/apps/web",
+    "use_new_terminal": true,
+    "reveal": "always",
+    "tags": [
+      "dev"
+    ]
   },
   {
-    "label": "Test: All (Turbo + Cargo)",
-    "command": "pnpm test && cargo test --workspace",
-    "use_new_terminal": false,
-    "reveal": "always"
-  },
-  {
-    "label": "Build: All",
-    "command": "pnpm build && cargo build --workspace --release",
-    "use_new_terminal": false,
-    "reveal": "always"
-  },
-  {
-    "label": "Cargo: Run Ingest",
+    "label": "Dev: Ingest",
     "command": "cargo run -p ingest",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "use_new_terminal": true,
+    "reveal": "always",
+    "env": {
+      "RUST_LOG": "ingest=info,tower_http=debug"
+    },
+    "tags": [
+      "dev"
+    ]
+  },
+  {
+    "label": "Build: Web",
+    "command": "pnpm build",
+    "cwd": "$ZED_WORKTREE_ROOT/apps/web",
+    "use_new_terminal": false,
+    "reveal": "always",
+    "tags": [
+      "build"
+    ]
+  },
+  {
+    "label": "Build: Ingest (release)",
+    "command": "cargo build --release -p ingest",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "use_new_terminal": false,
+    "reveal": "always",
+    "tags": [
+      "build"
+    ]
+  },
+  {
+    "label": "Typecheck: Web",
+    "command": "pnpm exec tsc --noEmit",
+    "cwd": "$ZED_WORKTREE_ROOT/apps/web",
+    "use_new_terminal": false,
+    "reveal": "always",
+    "tags": [
+      "check"
+    ]
+  },
+  {
+    "label": "Clippy: Ingest",
+    "command": "cargo clippy --workspace -- -D warnings",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "use_new_terminal": false,
+    "reveal": "always",
+    "tags": [
+      "check"
+    ]
+  },
+  {
+    "label": "Test: Rust",
+    "command": "cargo test --workspace",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "use_new_terminal": false,
+    "reveal": "always",
+    "tags": [
+      "test"
+    ]
+  },
+  {
+    "label": "Prisma: Generate",
+    "command": "pnpm exec prisma generate",
+    "cwd": "$ZED_WORKTREE_ROOT/apps/web",
+    "use_new_terminal": false,
+    "reveal": "always"
+  },
+  {
+    "label": "Prisma: Push",
+    "command": "pnpm exec prisma db push",
+    "cwd": "$ZED_WORKTREE_ROOT/apps/web",
     "use_new_terminal": false,
     "reveal": "always"
   }

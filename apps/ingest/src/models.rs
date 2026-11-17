@@ -19,7 +19,9 @@ pub struct TrackEventPayload {
     pub recording_id: Option<String>,
 }
 
-fn default_custom() -> String { "custom".to_string() }
+fn default_custom() -> String {
+    "custom".to_string()
+}
 
 // ─── Track PageView ───────────────────────────────────────────────────────────
 
@@ -28,11 +30,20 @@ pub struct TrackPageViewPayload {
     pub project_id: String,
     pub url: String,
     pub referrer: Option<String>,
+    /// SDK-generated UUID, stable per logical page view.
+    /// Used to correlate the initial load ping with the finalization update.
+    pub pageview_id: Option<String>,
     pub visitor_id: Option<String>,
     pub user_id: Option<String>,
     pub duration: Option<i32>,
     pub max_scroll_y: Option<i32>,
     pub recording_id: Option<String>,
+    /// Page <title> at time of capture.
+    pub title: Option<String>,
+    /// True when this is a finalization update (sent on page exit with duration+scroll).
+    /// The ingest service always INSERTs; the web layer reads the latest row per pageview_id.
+    #[serde(default)]
+    pub _update: bool,
 }
 
 // ─── Track Error ──────────────────────────────────────────────────────────────
@@ -62,6 +73,13 @@ pub struct SessionStartPayload {
     pub user_agent: Option<String>,
     pub viewport_w: Option<i32>,
     pub viewport_h: Option<i32>,
+    /// Whether this session is in the recording sample (passed from SDK).
+    #[serde(default = "default_true")]
+    pub sampled: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 // ─── Session Frames ───────────────────────────────────────────────────────────
@@ -75,6 +93,9 @@ pub struct SessionFramesPayload {
     #[serde(default)]
     pub duration: i32,
     pub exit_url: Option<String>,
+    /// True when sent from pagehide/visibilitychange — no retry needed.
+    #[serde(default)]
+    pub is_final: bool,
 }
 
 // ─── Report query params ──────────────────────────────────────────────────────
@@ -88,8 +109,12 @@ pub struct ReportQuery {
     pub limit: u32,
 }
 
-fn default_days() -> u32 { 7 }
-fn default_limit() -> u32 { 20 }
+fn default_days() -> u32 {
+    7
+}
+fn default_limit() -> u32 {
+    20
+}
 
 // ─── Shared response ─────────────────────────────────────────────────────────
 

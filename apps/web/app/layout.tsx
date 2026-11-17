@@ -4,7 +4,6 @@ import { TRPCReactProvider } from "@/trpc/client";
 import "./globals.css";
 import { cn } from "@/lib/cn";
 import { Toaster } from "@/components/ui/sonner";
-import { Topbar } from "@/components/dashboard/topbar";
 import { ThemeProvider } from "@/components/theme-provider";
 
 const figtree = Figtree({ subsets: ["latin"], variable: "--font-sans" });

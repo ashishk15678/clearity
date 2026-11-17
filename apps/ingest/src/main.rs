@@ -5,7 +5,7 @@ mod models;
 
 use axum::{
     Router,
-    http::{Method, HeaderName},
+    http::{HeaderName, Method},
     routing::{get, options, post},
 };
 use tower_http::cors::CorsLayer;
@@ -19,16 +19,19 @@ use handlers::{
     track::{track_event, track_pageview},
 };
 
-/// Respond to any OPTIONS preflight with 200 + CORS headers.
-/// This catch-all OPTIONS handler means unknown routes never 404 a preflight.
 async fn preflight() -> axum::http::StatusCode {
     axum::http::StatusCode::OK
 }
 
 #[tokio::main]
 async fn main() {
-    dotenvy::from_path("../app/.env").ok();
-    dotenvy::dotenv().ok();
+    // Load .env from multiple candidate locations so the binary works whether
+    // run from the monorepo root, from apps/ingest/, or as a standalone deploy.
+    // Later calls are no-ops if the variable is already set.
+    dotenvy::from_path("apps/web/.env").ok();      // monorepo root
+    dotenvy::from_path("../web/.env").ok();         // apps/ingest/
+    dotenvy::from_path(".env").ok();                // local override / production
+    dotenvy::dotenv().ok();                         // fallback: nearest .env
 
     tracing_subscriber::fmt()
         .with_env_filter(
@@ -38,24 +41,15 @@ async fn main() {
         .init();
 
     let database_url = std::env::var("DATABASE_URL")
-        .unwrap();
+        .expect("DATABASE_URL must be set (check apps/web/.env or apps/ingest/.env)");
 
-    let db_url = database_url;
+    tracing::info!("Connecting to database…");
+    let pool = db::create_pool(&database_url).await;
+    tracing::info!("Database ready");
 
-    tracing::info!("Connecting: {db_url}");
-    let pool = db::create_pool(&db_url).await;
-    tracing::info!("DB ready");
-
-    // ── CORS ──────────────────────────────────────────────────────────────────
-    // allow_origin(Any) + allow_credentials(true) is rejected by browsers.
-    // We use Any origin with no credentials — fine for public ingest APIs.
     let cors = CorsLayer::new()
         .allow_origin(tower_http::cors::Any)
-        .allow_methods([
-            Method::GET,
-            Method::POST,
-            Method::OPTIONS,
-        ])
+        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
         .allow_headers([
             HeaderName::from_static("content-type"),
             HeaderName::from_static("x-api-key"),
@@ -66,29 +60,22 @@ async fn main() {
         .max_age(std::time::Duration::from_secs(86400));
 
     let app = Router::new()
-        // ── Catch-all OPTIONS so browser preflights always get CORS headers ──
         .route("/{*path}", options(preflight))
-        // ── Health ────────────────────────────────────────────────────────────
-        .route("/health", get(health))
-        // ── Tracking ─────────────────────────────────────────────────────────
-        .route("/track/event",    post(track_event))
-        .route("/track/pageview", post(track_pageview))
-        .route("/track/error",    post(track_error))
-        // ── Session recording ─────────────────────────────────────────────────
-        .route("/session/start",  post(session_start))
-        .route("/session/frames", post(session_frames))
-        // ── Reports ───────────────────────────────────────────────────────────
-        .route("/reports/events",    get(events_report))
+        .route("/health",           get(health))
+        .route("/track/event",      post(track_event))
+        .route("/track/pageview",   post(track_pageview))
+        .route("/track/error",      post(track_error))
+        .route("/session/start",    post(session_start))
+        .route("/session/frames",   post(session_frames))
+        .route("/reports/events",   get(events_report))
         .route("/reports/pageviews", get(pageviews_report))
-        // ── Layers ───────────────────────────────────────────────────────────
-        // CORS wraps the entire router — every response (including 404s from
-        // routes that don't match) gets the CORS headers.
         .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(pool);
 
-    let addr = "0.0.0.0:4000";
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    let port = std::env::var("PORT").unwrap_or_else(|_| "4000".to_string());
+    let addr = format!("0.0.0.0:{port}");
+    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     tracing::info!("Ingest listening on http://{addr}");
     axum::serve(listener, app).await.unwrap();
 }

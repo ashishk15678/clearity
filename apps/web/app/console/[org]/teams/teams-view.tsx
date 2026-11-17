@@ -87,7 +87,6 @@ const ROLE_COLORS: Record<string, string> = {
 // ─── Tab type ─────────────────────────────────────────────────────────────────
 
 type Tab = "members" | "teams" | "invites";
-
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function TeamsView({
@@ -486,6 +485,14 @@ function TeamsTab({
                   ))}
                 </div>
               )}
+
+              {/* Project access section */}
+              <TeamPermissionsSection
+                team={team}
+                orgId={org.id}
+                orgSlug={org.slug}
+                isAdmin={isAdmin}
+              />
             </div>
           ))}
         </div>
@@ -974,6 +981,147 @@ function RoleSelect({
         </option>
       ))}
     </select>
+  );
+}
+
+// ─── Team permissions collapsible section ─────────────────────────────────────
+
+function TeamPermissionsSection({
+  team,
+  orgId,
+  orgSlug,
+  isAdmin,
+}: {
+  team: Team;
+  orgId: string;
+  orgSlug: string;
+  isAdmin: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="border-t border-border">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-5 py-2.5 text-xs font-semibold text-muted-foreground hover:bg-muted/30 transition-colors uppercase tracking-wider"
+        aria-expanded={open}
+      >
+        Project access
+        <svg
+          viewBox="0 0 16 16"
+          fill="currentColor"
+          className={cn("h-3.5 w-3.5 transition-transform", open ? "rotate-180" : "")}
+        >
+          <path d="M4.22 6.22a.75.75 0 011.06 0L8 8.94l2.72-2.72a.75.75 0 111.06 1.06l-3.25 3.25a.75.75 0 01-1.06 0L4.22 7.28a.75.75 0 010-1.06z" />
+        </svg>
+      </button>
+      {open && (
+        <TeamPermissionsPanel
+          team={team}
+          orgId={orgId}
+          orgSlug={orgSlug}
+          isAdmin={isAdmin}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── Team permissions panel ───────────────────────────────────────────────────
+
+function TeamPermissionsPanel({
+  team,
+  orgId,
+  orgSlug,
+  isAdmin,
+}: {
+  team: Team;
+  orgId: string;
+  orgSlug: string;
+  isAdmin: boolean;
+}) {
+  const trpc = useTRPC();
+  const qc = useQueryClient();
+
+  const { data: accesses, isPending } = useQuery(
+    trpc.org.listTeamProjectAccess.queryOptions({ teamId: team.id }),
+  );
+
+  // Projects for this org are fetched via the projects router
+  const { data: projects } = useQuery(
+    trpc.projects.list.queryOptions({ organizationId: orgId }),
+  );
+
+  const setAccess = useMutation(
+    trpc.org.setTeamProjectAccess.mutationOptions({
+      onSuccess: () =>
+        qc.invalidateQueries({
+          queryKey: trpc.org.listTeamProjectAccess.queryKey({ teamId: team.id }),
+        }),
+    }),
+  );
+
+  const accessMap = new Map(
+    (accesses ?? []).map((a) => [a.projectId, a.access]),
+  );
+
+  const ACCESS_LEVELS = [
+    { value: null,     label: "No access" },
+    { value: "VIEWER", label: "Viewer — read-only" },
+    { value: "MEMBER", label: "Member — can create" },
+    { value: "ADMIN",  label: "Admin — full control" },
+  ] as const;
+
+  if (isPending || !projects) {
+    return <div className="px-5 py-3 text-xs text-muted-foreground">Loading…</div>;
+  }
+
+  if (projects.length === 0) {
+    return (
+      <div className="px-5 py-3 text-xs text-muted-foreground">
+        No projects in this org yet.
+      </div>
+    );
+  }
+
+  return (
+    <div className="divide-y divide-border">
+      {projects.map((p) => {
+        const current = accessMap.get(p.id) ?? null;
+        return (
+          <div key={p.id} className="flex items-center justify-between px-5 py-2.5 gap-4">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
+              <p className="text-xs text-muted-foreground font-mono">{p.slug}</p>
+            </div>
+            {isAdmin ? (
+              <select
+                value={current ?? ""}
+                onChange={(e) =>
+                  setAccess.mutate({
+                    teamId: team.id,
+                    projectId: p.id,
+                    access: (e.target.value || null) as "VIEWER" | "MEMBER" | "ADMIN" | null,
+                  })
+                }
+                className="rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                aria-label={`Access level for ${p.name}`}
+              >
+                {ACCESS_LEVELS.map((l) => (
+                  <option key={String(l.value)} value={l.value ?? ""}>
+                    {l.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span className="text-xs text-muted-foreground">
+                {current ?? "No access"}
+              </span>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 

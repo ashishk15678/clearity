@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "@/trpc/init";
 import { prisma } from "@/lib/prisma";
 import { requireOrgMember, type OrgRole } from "@/lib/org-access";
+import { emitNotification } from "./notifications";
 
 function slugify(s: string) {
   return s
@@ -277,6 +278,16 @@ export const OrgRouter = createTRPCRouter({
       });
 
       // TODO: send invite email — for now return the token so it can be shared
+      // Notify the invited user if they already have an account
+      if (existing) {
+        await emitNotification(
+          existing.id,
+          "invite_received",
+          `You've been invited to ${invite.organization.name}`,
+          `${ctx.user.name ?? ctx.user.email} invited you as ${input.role}. Accept to join.`,
+          `/invite/${invite.token}`,
+        ).catch(() => {}); // non-fatal
+      }
       return { invite, inviteUrl: `/invite/${invite.token}` };
     }),
 
@@ -337,6 +348,29 @@ export const OrgRouter = createTRPCRouter({
         where: { id: invite.id },
         data: { acceptedAt: new Date() },
       });
+
+      // Notify org admins that someone joined
+      const admins = await prisma.organizationMember.findMany({
+        where: {
+          organizationId: invite.organizationId,
+          role: { in: ["OWNER", "ADMIN"] },
+          NOT: { userId: ctx.user.id },
+        },
+        select: { userId: true },
+      });
+      const joinerName = user?.name ?? user?.email ?? "Someone";
+      await Promise.all(
+        admins.map((a) =>
+          emitNotification(
+            a.userId,
+            "member_joined",
+            `${joinerName} joined ${invite.organization.name}`,
+            `${joinerName} accepted their invite and joined as ${invite.role}.`,
+            `/console/${invite.organization.slug}/teams`,
+          ).catch(() => {}),
+        ),
+      );
+
       return { organization: invite.organization };
     }),
 
@@ -500,5 +534,49 @@ export const OrgRouter = createTRPCRouter({
         },
       });
       return { success: true };
+    }),
+
+  // ── Team project access ───────────────────────────────────────────────────
+
+  /** Set (upsert) the access level a team has on a project. access=null removes it. */
+  setTeamProjectAccess: protectedProcedure
+    .input(
+      z.object({
+        teamId:    z.string(),
+        projectId: z.string(),
+        access:    z.enum(["VIEWER", "MEMBER", "ADMIN"]).nullable(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const team = await prisma.team.findUnique({ where: { id: input.teamId } });
+      if (!team) throw new TRPCError({ code: "NOT_FOUND" });
+      await requireOrgMember(ctx.user.id, team.organizationId, "ADMIN");
+
+      if (input.access === null) {
+        await prisma.teamProjectAccess.deleteMany({
+          where: { teamId: input.teamId, projectId: input.projectId },
+        });
+        return { success: true };
+      }
+
+      return prisma.teamProjectAccess.upsert({
+        where: { teamId_projectId: { teamId: input.teamId, projectId: input.projectId } },
+        create: { teamId: input.teamId, projectId: input.projectId, access: input.access },
+        update: { access: input.access },
+      });
+    }),
+
+  /** List all project-access grants for a team. */
+  listTeamProjectAccess: protectedProcedure
+    .input(z.object({ teamId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const team = await prisma.team.findUnique({ where: { id: input.teamId } });
+      if (!team) throw new TRPCError({ code: "NOT_FOUND" });
+      await requireOrgMember(ctx.user.id, team.organizationId);
+      return prisma.teamProjectAccess.findMany({
+        where: { teamId: input.teamId },
+        include: { project: { select: { id: true, name: true, slug: true } } },
+        orderBy: { grantedAt: "asc" },
+      });
     }),
 });

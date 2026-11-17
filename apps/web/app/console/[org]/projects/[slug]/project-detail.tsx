@@ -18,8 +18,6 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/cn";
 import { SessionReplay } from "./session-replay";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 type Tab =
   | "overview"
   | "analytics"
@@ -53,14 +51,14 @@ export function ProjectDetail({ project }: { project: ProjectWithCount }) {
   const [tab, setTab] = useState<Tab>("overview");
 
   const tabs: { id: Tab; label: string }[] = [
-    { id: "overview",  label: "Overview"  },
+    { id: "overview", label: "Overview" },
     { id: "analytics", label: "Analytics" },
-    { id: "events",    label: "Events"    },
-    { id: "errors",    label: "Errors"    },
-    { id: "sessions",  label: "Sessions"  },
-    { id: "pageviews", label: "Page views"},
-    { id: "api-keys",  label: "API keys"  },
-    { id: "setup",     label: "Setup"     },
+    { id: "events", label: "Events" },
+    { id: "errors", label: "Errors" },
+    { id: "sessions", label: "Sessions" },
+    { id: "pageviews", label: "Page views" },
+    { id: "api-keys", label: "API keys" },
+    { id: "setup", label: "Setup" },
   ];
 
   return (
@@ -69,9 +67,13 @@ export function ProjectDetail({ project }: { project: ProjectWithCount }) {
       <div className="border-b border-border bg-background px-5 sm:px-6 pt-5 pb-0">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-4">
           <div className="min-w-0">
-            <h2 className="text-base font-semibold text-foreground truncate">{project.name}</h2>
+            <h2 className="text-base font-semibold text-foreground truncate">
+              {project.name}
+            </h2>
             {project.description && (
-              <p className="mt-0.5 text-sm text-muted-foreground">{project.description}</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {project.description}
+              </p>
             )}
             {project.url && (
               <a
@@ -87,16 +89,20 @@ export function ProjectDetail({ project }: { project: ProjectWithCount }) {
           {/* Stat pills */}
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
             {[
-              { label: "Events",   value: project._count.events   },
-              { label: "Views",    value: project._count.pageViews },
-              { label: "API keys", value: project._count.apiKeys  },
+              { label: "Events", value: project._count.events },
+              { label: "Views", value: project._count.pageViews },
+              { label: "API keys", value: project._count.apiKeys },
             ].map((s) => (
               <div
                 key={s.label}
                 className="flex flex-col items-center rounded-md border border-border px-3 py-1.5 min-w-[56px]"
               >
-                <span className="text-sm font-semibold tabular-nums text-foreground">{s.value}</span>
-                <span className="text-[10px] text-muted-foreground uppercase tracking-wide">{s.label}</span>
+                <span className="text-sm font-semibold tabular-nums text-foreground">
+                  {s.value}
+                </span>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                  {s.label}
+                </span>
               </div>
             ))}
           </div>
@@ -124,14 +130,14 @@ export function ProjectDetail({ project }: { project: ProjectWithCount }) {
       {/* ── Tab panels ──────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto">
         <div className="px-5 sm:px-6 py-6">
-          {tab === "overview"  && <OverviewTab  projectId={project.id} />}
+          {tab === "overview" && <OverviewTab projectId={project.id} />}
           {tab === "analytics" && <AnalyticsTab projectId={project.id} />}
-          {tab === "events"    && <EventsTab    projectId={project.id} />}
-          {tab === "errors"    && <ErrorsTab    projectId={project.id} />}
-          {tab === "sessions"  && <SessionsTab  projectId={project.id} />}
+          {tab === "events" && <EventsTab projectId={project.id} />}
+          {tab === "errors" && <ErrorsTab projectId={project.id} />}
+          {tab === "sessions" && <SessionsTab projectId={project.id} />}
           {tab === "pageviews" && <PageViewsTab projectId={project.id} />}
-          {tab === "api-keys"  && <ApiKeysTab   projectId={project.id} />}
-          {tab === "setup"     && <SetupTab     projectId={project.id} />}
+          {tab === "api-keys" && <ApiKeysTab projectId={project.id} />}
+          {tab === "setup" && <SetupTab projectId={project.id} />}
         </div>
       </div>
     </div>
@@ -141,12 +147,27 @@ export function ProjectDetail({ project }: { project: ProjectWithCount }) {
 // ─── Shared primitives ────────────────────────────────────────────────────────
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-[13px] font-semibold text-foreground mb-4">{children}</h3>;
+  return (
+    <h3 className="text-[13px] font-semibold text-foreground mb-4">
+      {children}
+    </h3>
+  );
 }
 
-function Panel({ children, className }: { children: React.ReactNode; className?: string }) {
+function Panel({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <div className={cn("rounded-lg border border-border bg-card overflow-hidden", className)}>
+    <div
+      className={cn(
+        "rounded-lg border border-border bg-card overflow-hidden",
+        className,
+      )}
+    >
       {children}
     </div>
   );
@@ -160,7 +181,12 @@ function PanelHeader({ children }: { children: React.ReactNode }) {
   );
 }
 
-function EmptyState({ icon, title, desc, action }: {
+function EmptyState({
+  icon,
+  title,
+  desc,
+  action,
+}: {
   icon: React.ReactNode;
   title: string;
   desc: string;
@@ -194,13 +220,24 @@ function LoadingKpis() {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 animate-pulse">
       {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="h-24 rounded-lg border border-border bg-muted" />
+        <div
+          key={i}
+          className="h-24 rounded-lg border border-border bg-muted"
+        />
       ))}
     </div>
   );
 }
 
-function DaySelector({ days, setDays, options }: { days: number; setDays: (d: number) => void; options: number[] }) {
+function DaySelector({
+  days,
+  setDays,
+  options,
+}: {
+  days: number;
+  setDays: (d: number) => void;
+  options: number[];
+}) {
   return (
     <div className="flex items-center rounded-md border border-border overflow-hidden">
       {options.map((d) => (
@@ -227,19 +264,52 @@ function OverviewTab({ projectId }: { projectId: string }) {
   const trpc = useTRPC();
   const [days, setDays] = useState(7);
 
-  const { data, isPending } = useQuery(trpc.reports.overview.queryOptions({ projectId, days }));
-  const { data: evSeries }  = useQuery(trpc.events.timeSeries.queryOptions({ projectId, days }));
-  const { data: pvSeries }  = useQuery(trpc.reports.pageViewTimeSeries.queryOptions({ projectId, days }));
-  const { data: frustration } = useQuery(trpc.reports.frustration.queryOptions({ projectId, days }));
+  const { data, isPending } = useQuery(
+    trpc.reports.overview.queryOptions({ projectId, days }),
+  );
+  const { data: evSeries } = useQuery(
+    trpc.events.timeSeries.queryOptions({ projectId, days }),
+  );
+  const { data: pvSeries } = useQuery(
+    trpc.reports.pageViewTimeSeries.queryOptions({ projectId, days }),
+  );
+  const { data: frustration } = useQuery(
+    trpc.reports.frustration.queryOptions({ projectId, days }),
+  );
 
   if (isPending) return <LoadingKpis />;
   if (!data) return null;
 
   const kpis = [
-    { label: "Events",      value: data.events,      change: data.eventsChange,   series: evSeries ?? [], color: "#0070f3" },
-    { label: "Page Views",  value: data.pageViews,   change: data.pageViewsChange, series: pvSeries ?? [], color: "#7928ca" },
-    { label: "Sessions",    value: data.sessions,    change: 0,                   series: [],             color: "#ff0080" },
-    { label: "Open Errors", value: data.errorGroups, change: 0,                   series: [],             color: "#e00",   accent: data.errorGroups > 0 },
+    {
+      label: "Events",
+      value: data.events,
+      change: data.eventsChange,
+      series: evSeries ?? [],
+      color: "#0070f3",
+    },
+    {
+      label: "Page Views",
+      value: data.pageViews,
+      change: data.pageViewsChange,
+      series: pvSeries ?? [],
+      color: "#7928ca",
+    },
+    {
+      label: "Sessions",
+      value: data.sessions,
+      change: 0,
+      series: [],
+      color: "#ff0080",
+    },
+    {
+      label: "Open Errors",
+      value: data.errorGroups,
+      change: 0,
+      series: [],
+      color: "#e00",
+      accent: data.errorGroups > 0,
+    },
   ];
 
   return (
@@ -252,19 +322,39 @@ function OverviewTab({ projectId }: { projectId: string }) {
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {kpis.map((k) => (
-          <div key={k.label} className="rounded-lg border border-border bg-card p-4 space-y-2">
-            <p className="text-xs text-muted-foreground font-medium">{k.label}</p>
+          <div
+            key={k.label}
+            className="rounded-lg border border-border bg-card p-4 space-y-2"
+          >
+            <p className="text-xs text-muted-foreground font-medium">
+              {k.label}
+            </p>
             <div className="flex items-end justify-between gap-1">
-              <p className={cn("text-2xl font-bold tabular-nums leading-none", k.accent ? "text-destructive" : "text-foreground")}>
+              <p
+                className={cn(
+                  "text-2xl font-bold tabular-nums leading-none",
+                  k.accent ? "text-destructive" : "text-foreground",
+                )}
+              >
                 {k.value.toLocaleString()}
               </p>
               {k.change !== 0 && (
-                <span className={cn("text-[11px] font-medium mb-0.5", k.change > 0 ? "text-green-600 dark:text-green-400" : "text-destructive")}>
-                  {k.change > 0 ? "↑" : "↓"}{Math.abs(k.change).toFixed(0)}%
+                <span
+                  className={cn(
+                    "text-[11px] font-medium mb-0.5",
+                    k.change > 0
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-destructive",
+                  )}
+                >
+                  {k.change > 0 ? "↑" : "↓"}
+                  {Math.abs(k.change).toFixed(0)}%
                 </span>
               )}
             </div>
-            {k.series.length > 0 && <Sparkline data={k.series} color={k.color} />}
+            {k.series.length > 0 && (
+              <Sparkline data={k.series} color={k.color} />
+            )}
           </div>
         ))}
       </div>
@@ -273,13 +363,40 @@ function OverviewTab({ projectId }: { projectId: string }) {
       {frustration && frustration.totalSessions > 0 && (
         <div className="grid grid-cols-2 gap-3">
           {[
-            { label: "Rage-click rate", value: `${frustration.ragePct}%`, sub: `${frustration.sessionsWithRage} sessions`, hot: frustration.ragePct > 10 },
-            { label: "Error rate",      value: `${frustration.errorPct}%`, sub: `${frustration.sessionsWithErrors} sessions`, hot: frustration.errorPct > 5 },
+            {
+              label: "Rage-click rate",
+              value: `${frustration.ragePct}%`,
+              sub: `${frustration.sessionsWithRage} sessions`,
+              hot: frustration.ragePct > 10,
+            },
+            {
+              label: "Error rate",
+              value: `${frustration.errorPct}%`,
+              sub: `${frustration.sessionsWithErrors} sessions`,
+              hot: frustration.errorPct > 5,
+            },
           ].map((s) => (
-            <div key={s.label} className={cn("rounded-lg border p-4", s.hot ? "border-destructive/30 bg-destructive/5" : "border-border bg-card")}>
+            <div
+              key={s.label}
+              className={cn(
+                "rounded-lg border p-4",
+                s.hot
+                  ? "border-destructive/30 bg-destructive/5"
+                  : "border-border bg-card",
+              )}
+            >
               <p className="text-xs text-muted-foreground">{s.label}</p>
-              <p className={cn("mt-1 text-2xl font-bold tabular-nums", s.hot ? "text-destructive" : "text-foreground")}>{s.value}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">{s.sub}</p>
+              <p
+                className={cn(
+                  "mt-1 text-2xl font-bold tabular-nums",
+                  s.hot ? "text-destructive" : "text-foreground",
+                )}
+              >
+                {s.value}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {s.sub}
+              </p>
             </div>
           ))}
         </div>
@@ -287,8 +404,18 @@ function OverviewTab({ projectId }: { projectId: string }) {
 
       {/* Top tables */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <TopTable title="Top Pages"  rows={data.topPages.map((p) => ({ label: p.url,  value: p.count }))} emptyMsg="No page views yet" color="#7928ca" />
-        <TopTable title="Top Events" rows={data.topEvents.map((e) => ({ label: e.name, value: e.count }))} emptyMsg="No events yet"    color="#0070f3" />
+        <TopTable
+          title="Top Pages"
+          rows={data.topPages.map((p) => ({ label: p.url, value: p.count }))}
+          emptyMsg="No page views yet"
+          color="#7928ca"
+        />
+        <TopTable
+          title="Top Events"
+          rows={data.topEvents.map((e) => ({ label: e.name, value: e.count }))}
+          emptyMsg="No events yet"
+          color="#0070f3"
+        />
       </div>
     </div>
   );
@@ -296,7 +423,13 @@ function OverviewTab({ projectId }: { projectId: string }) {
 
 // ─── Sparkline ────────────────────────────────────────────────────────────────
 
-function Sparkline({ data, color }: { data: { date: string; count: number }[]; color: string }) {
+function Sparkline({
+  data,
+  color,
+}: {
+  data: { date: string; count: number }[];
+  color: string;
+}) {
   const max = Math.max(...data.map((d) => d.count), 1);
   return (
     <div className="flex items-end gap-px h-7">
@@ -318,7 +451,12 @@ function Sparkline({ data, color }: { data: { date: string; count: number }[]; c
 
 // ─── TopTable ─────────────────────────────────────────────────────────────────
 
-function TopTable({ title, rows, emptyMsg, color = "#0070f3" }: {
+function TopTable({
+  title,
+  rows,
+  emptyMsg,
+  color = "#0070f3",
+}: {
   title: string;
   rows: { label: string; value: number }[];
   emptyMsg: string;
@@ -328,10 +466,14 @@ function TopTable({ title, rows, emptyMsg, color = "#0070f3" }: {
   return (
     <Panel>
       <PanelHeader>
-        <span className="text-[13px] font-semibold text-foreground">{title}</span>
+        <span className="text-[13px] font-semibold text-foreground">
+          {title}
+        </span>
       </PanelHeader>
       {rows.length === 0 ? (
-        <div className="px-4 py-8 text-center text-sm text-muted-foreground">{emptyMsg}</div>
+        <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+          {emptyMsg}
+        </div>
       ) : (
         <div className="divide-y divide-border">
           {rows.map((r) => (
@@ -339,10 +481,18 @@ function TopTable({ title, rows, emptyMsg, color = "#0070f3" }: {
               <div className="flex-1 min-w-0">
                 <p className="truncate text-xs text-foreground">{r.label}</p>
                 <div className="mt-1 h-1 rounded-full bg-muted">
-                  <div className="h-full rounded-full transition-all" style={{ width: `${(r.value / max) * 100}%`, backgroundColor: color }} />
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${(r.value / max) * 100}%`,
+                      backgroundColor: color,
+                    }}
+                  />
                 </div>
               </div>
-              <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">{r.value.toLocaleString()}</span>
+              <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
+                {r.value.toLocaleString()}
+              </span>
             </div>
           ))}
         </div>
@@ -358,12 +508,28 @@ function AnalyticsTab({ projectId }: { projectId: string }) {
   const [days, setDays] = useState(14);
   const [heatmapPath, setHeatmapPath] = useState("/");
 
-  const { data: scroll }       = useQuery(trpc.reports.scrollDepth.queryOptions({ projectId, days }));
-  const { data: referrers }    = useQuery(trpc.reports.referrers.queryOptions({ projectId, days }));
-  const { data: activity }     = useQuery(trpc.reports.activityByHour.queryOptions({ projectId, days }));
-  const { data: frustration }  = useQuery(trpc.reports.frustration.queryOptions({ projectId, days }));
-  const { data: heatmapData }  = useQuery(trpc.reports.clickHeatmap.queryOptions({ projectId, path: heatmapPath, days }));
-  const { data: perf }         = useQuery(trpc.reports.pagePerformance.queryOptions({ projectId, days }));
+  const { data: scroll } = useQuery(
+    trpc.reports.scrollDepth.queryOptions({ projectId, days }),
+  );
+  const { data: referrers } = useQuery(
+    trpc.reports.referrers.queryOptions({ projectId, days }),
+  );
+  const { data: activity } = useQuery(
+    trpc.reports.activityByHour.queryOptions({ projectId, days }),
+  );
+  const { data: frustration } = useQuery(
+    trpc.reports.frustration.queryOptions({ projectId, days }),
+  );
+  const { data: heatmapData } = useQuery(
+    trpc.reports.clickHeatmap.queryOptions({
+      projectId,
+      path: heatmapPath,
+      days,
+    }),
+  );
+  const { data: perf } = useQuery(
+    trpc.reports.pagePerformance.queryOptions({ projectId, days }),
+  );
 
   return (
     <div className="space-y-8">
@@ -373,7 +539,10 @@ function AnalyticsTab({ projectId }: { projectId: string }) {
       </div>
 
       {/* Scroll depth */}
-      <AnalyticsSection title="Scroll Depth" sub="How far users scroll on each page">
+      <AnalyticsSection
+        title="Scroll Depth"
+        sub="How far users scroll on each page"
+      >
         {!scroll?.length ? (
           <ChartEmpty label="No scroll data yet — the SDK tracks maxScrollY automatically" />
         ) : (
@@ -381,16 +550,27 @@ function AnalyticsTab({ projectId }: { projectId: string }) {
             {scroll.map((row) => (
               <div key={row.path} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground font-mono truncate max-w-[60%]">{row.path}</span>
+                  <span className="text-muted-foreground font-mono truncate max-w-[60%]">
+                    {row.path}
+                  </span>
                   <div className="flex items-center gap-3 text-muted-foreground shrink-0">
                     <span>{row.views.toLocaleString()} views</span>
-                    <span className="font-semibold text-foreground">{row.avg}% avg</span>
+                    <span className="font-semibold text-foreground">
+                      {row.avg}% avg
+                    </span>
                   </div>
                 </div>
                 <div className="relative h-4 rounded bg-muted overflow-hidden">
-                  <div className="absolute inset-y-0 left-0 bg-primary/60 rounded transition-all" style={{ width: `${row.avg}%` }} />
+                  <div
+                    className="absolute inset-y-0 left-0 bg-primary/60 rounded transition-all"
+                    style={{ width: `${row.avg}%` }}
+                  />
                   {[25, 50, 75].map((pct) => (
-                    <div key={pct} className="absolute inset-y-0 w-px bg-border" style={{ left: `${pct}%` }} />
+                    <div
+                      key={pct}
+                      className="absolute inset-y-0 w-px bg-border"
+                      style={{ left: `${pct}%` }}
+                    />
                   ))}
                 </div>
               </div>
@@ -408,48 +588,103 @@ function AnalyticsTab({ projectId }: { projectId: string }) {
             <div className="space-y-2">
               {referrers.sources.map((s) => (
                 <div key={s.source} className="flex items-center gap-3">
-                  <span className="w-32 shrink-0 truncate text-xs text-muted-foreground font-mono">{s.source}</span>
+                  <span className="w-32 shrink-0 truncate text-xs text-muted-foreground font-mono">
+                    {s.source}
+                  </span>
                   <div className="flex-1 h-4 rounded bg-muted overflow-hidden">
-                    <div className="h-full rounded bg-primary/60 transition-all" style={{ width: `${s.pct}%` }} />
+                    <div
+                      className="h-full rounded bg-primary/60 transition-all"
+                      style={{ width: `${s.pct}%` }}
+                    />
                   </div>
-                  <span className="w-14 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{s.count.toLocaleString()}</span>
+                  <span className="w-14 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
+                    {s.count.toLocaleString()}
+                  </span>
                 </div>
               ))}
             </div>
-            <TrafficDonut sources={referrers.sources.slice(0, 6)} total={referrers.total} />
+            <TrafficDonut
+              sources={referrers.sources.slice(0, 6)}
+              total={referrers.total}
+            />
           </div>
         )}
       </AnalyticsSection>
 
       {/* Activity heatmap */}
-      <AnalyticsSection title="Activity by Hour" sub="When your users are most active">
-        {!activity ? <ChartEmpty label="Loading…" /> : (
+      <AnalyticsSection
+        title="Activity by Hour"
+        sub="When your users are most active"
+      >
+        {!activity ? (
+          <ChartEmpty label="Loading…" />
+        ) : (
           <ActivityHeatmap grid={activity.grid} maxCount={activity.maxCount} />
         )}
       </AnalyticsSection>
 
       {/* Frustration signals */}
-      <AnalyticsSection title="Frustration Signals" sub="Rage-clicks and dead-clicks">
-        {!frustration ? <ChartEmpty label="Loading…" /> : (
+      <AnalyticsSection
+        title="Frustration Signals"
+        sub="Rage-clicks and dead-clicks"
+      >
+        {!frustration ? (
+          <ChartEmpty label="Loading…" />
+        ) : (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {[
-                { label: "Sessions",        value: frustration.totalSessions.toLocaleString(), sub: `last ${days}d`, hot: false },
-                { label: "Rage-click rate", value: `${frustration.ragePct}%`, sub: `${frustration.sessionsWithRage} sessions`, hot: frustration.ragePct > 10 },
-                { label: "Error rate",      value: `${frustration.errorPct}%`, sub: `${frustration.sessionsWithErrors} sessions`, hot: frustration.errorPct > 5 },
+                {
+                  label: "Sessions",
+                  value: frustration.totalSessions.toLocaleString(),
+                  sub: `last ${days}d`,
+                  hot: false,
+                },
+                {
+                  label: "Rage-click rate",
+                  value: `${frustration.ragePct}%`,
+                  sub: `${frustration.sessionsWithRage} sessions`,
+                  hot: frustration.ragePct > 10,
+                },
+                {
+                  label: "Error rate",
+                  value: `${frustration.errorPct}%`,
+                  sub: `${frustration.sessionsWithErrors} sessions`,
+                  hot: frustration.errorPct > 5,
+                },
               ].map((s) => (
-                <div key={s.label} className="rounded-lg border border-border bg-card p-3.5">
+                <div
+                  key={s.label}
+                  className="rounded-lg border border-border bg-card p-3.5"
+                >
                   <p className="text-[11px] text-muted-foreground">{s.label}</p>
-                  <p className={cn("mt-1 text-xl font-bold tabular-nums", s.hot ? "text-destructive" : "text-foreground")}>{s.value}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{s.sub}</p>
+                  <p
+                    className={cn(
+                      "mt-1 text-xl font-bold tabular-nums",
+                      s.hot ? "text-destructive" : "text-foreground",
+                    )}
+                  >
+                    {s.value}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    {s.sub}
+                  </p>
                 </div>
               ))}
             </div>
             {frustration.rageClicks.length > 0 && (
               <div className="grid lg:grid-cols-2 gap-4">
-                <ClickList title="Top Rage-click Targets" color="#e00"  items={frustration.rageClicks} />
+                <ClickList
+                  title="Top Rage-click Targets"
+                  color="#e00"
+                  items={frustration.rageClicks}
+                />
                 {frustration.deadClicks.length > 0 && (
-                  <ClickList title="Top Dead-click Targets" color="#888" items={frustration.deadClicks} />
+                  <ClickList
+                    title="Top Dead-click Targets"
+                    color="#888"
+                    items={frustration.deadClicks}
+                  />
                 )}
               </div>
             )}
@@ -458,7 +693,10 @@ function AnalyticsTab({ projectId }: { projectId: string }) {
       </AnalyticsSection>
 
       {/* Click heatmap */}
-      <AnalyticsSection title="Click Heatmap" sub="Where users click on each page">
+      <AnalyticsSection
+        title="Click Heatmap"
+        sub="Where users click on each page"
+      >
         {heatmapData?.paths.length ? (
           <div className="flex items-center gap-2 mb-4 flex-wrap">
             {heatmapData.paths.slice(0, 10).map((p) => (
@@ -485,7 +723,10 @@ function AnalyticsTab({ projectId }: { projectId: string }) {
       </AnalyticsSection>
 
       {/* Page performance */}
-      <AnalyticsSection title="Page Performance" sub="Time spent and visitors per page">
+      <AnalyticsSection
+        title="Page Performance"
+        sub="Time spent and visitors per page"
+      >
         {!perf?.length ? (
           <ChartEmpty label="Duration data is captured on page exit via the SDK." />
         ) : (
@@ -493,8 +734,17 @@ function AnalyticsTab({ projectId }: { projectId: string }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/40">
-                  {["Page", "Views", "Unique visitors", "Avg time", "p50 time"].map((h) => (
-                    <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
+                  {[
+                    "Page",
+                    "Views",
+                    "Unique visitors",
+                    "Avg time",
+                    "p50 time",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="px-4 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap"
+                    >
                       {h}
                     </th>
                   ))}
@@ -502,12 +752,25 @@ function AnalyticsTab({ projectId }: { projectId: string }) {
               </thead>
               <tbody className="divide-y divide-border">
                 {perf.map((row) => (
-                  <tr key={row.path} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-2.5 font-mono text-xs text-foreground max-w-[200px] truncate">{row.path}</td>
-                    <td className="px-4 py-2.5 tabular-nums text-xs text-muted-foreground">{row.views.toLocaleString()}</td>
-                    <td className="px-4 py-2.5 tabular-nums text-xs text-muted-foreground">{row.uniqueVisitors.toLocaleString()}</td>
-                    <td className="px-4 py-2.5 tabular-nums text-xs font-medium text-foreground">{fmtMs(row.avgDuration)}</td>
-                    <td className="px-4 py-2.5 tabular-nums text-xs text-muted-foreground">{fmtMs(row.p50Duration)}</td>
+                  <tr
+                    key={row.path}
+                    className="hover:bg-muted/30 transition-colors"
+                  >
+                    <td className="px-4 py-2.5 font-mono text-xs text-foreground max-w-[200px] truncate">
+                      {row.path}
+                    </td>
+                    <td className="px-4 py-2.5 tabular-nums text-xs text-muted-foreground">
+                      {row.views.toLocaleString()}
+                    </td>
+                    <td className="px-4 py-2.5 tabular-nums text-xs text-muted-foreground">
+                      {row.uniqueVisitors.toLocaleString()}
+                    </td>
+                    <td className="px-4 py-2.5 tabular-nums text-xs font-medium text-foreground">
+                      {fmtMs(row.avgDuration)}
+                    </td>
+                    <td className="px-4 py-2.5 tabular-nums text-xs text-muted-foreground">
+                      {fmtMs(row.p50Duration)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -519,7 +782,15 @@ function AnalyticsTab({ projectId }: { projectId: string }) {
   );
 }
 
-function AnalyticsSection({ title, sub, children }: { title: string; sub: string; children: React.ReactNode }) {
+function AnalyticsSection({
+  title,
+  sub,
+  children,
+}: {
+  title: string;
+  sub: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-3">
       <div>
@@ -534,7 +805,9 @@ function AnalyticsSection({ title, sub, children }: { title: string; sub: string
 function ChartEmpty({ label }: { label: string }) {
   return (
     <div className="flex items-center justify-center rounded-lg border border-dashed border-border py-10">
-      <p className="text-xs text-muted-foreground text-center max-w-xs">{label}</p>
+      <p className="text-xs text-muted-foreground text-center max-w-xs">
+        {label}
+      </p>
     </div>
   );
 }
@@ -543,24 +816,36 @@ function ChartEmpty({ label }: { label: string }) {
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-function ActivityHeatmap({ grid, maxCount }: { grid: { day: number; hour: number; count: number }[]; maxCount: number }) {
+function ActivityHeatmap({
+  grid,
+  maxCount,
+}: {
+  grid: { day: number; hour: number; count: number }[];
+  maxCount: number;
+}) {
   const lookup = new Map<string, number>();
   for (const c of grid) lookup.set(`${c.day}:${c.hour}`, c.count);
-  const intensity = (count: number) => count === 0 ? 0 : Math.max(0.08, count / maxCount);
+  const intensity = (count: number) =>
+    count === 0 ? 0 : Math.max(0.08, count / maxCount);
 
   return (
     <div className="overflow-x-auto">
       <div className="min-w-[560px] space-y-1">
         <div className="flex items-center gap-0.5 pl-10">
           {Array.from({ length: 24 }, (_, h) => (
-            <div key={h} className="flex-1 text-center text-[9px] text-muted-foreground">
+            <div
+              key={h}
+              className="flex-1 text-center text-[9px] text-muted-foreground"
+            >
               {h % 6 === 0 ? `${h}h` : ""}
             </div>
           ))}
         </div>
         {DAY_LABELS.map((day, d) => (
           <div key={day} className="flex items-center gap-0.5">
-            <span className="w-10 shrink-0 text-[10px] text-muted-foreground text-right pr-2">{day}</span>
+            <span className="w-10 shrink-0 text-[10px] text-muted-foreground text-right pr-2">
+              {day}
+            </span>
             {Array.from({ length: 24 }, (_, h) => {
               const count = lookup.get(`${d}:${h}`) ?? 0;
               const alpha = intensity(count);
@@ -568,7 +853,10 @@ function ActivityHeatmap({ grid, maxCount }: { grid: { day: number; hour: number
                 <div
                   key={h}
                   className="flex-1 aspect-square rounded-[2px] transition-all"
-                  style={{ backgroundColor: alpha === 0 ? "var(--muted)" : `rgba(0,112,243,${alpha})` }}
+                  style={{
+                    backgroundColor:
+                      alpha === 0 ? "var(--muted)" : `rgba(0,112,243,${alpha})`,
+                  }}
                   title={`${day} ${h}:00 — ${count}`}
                 />
               );
@@ -582,9 +870,22 @@ function ActivityHeatmap({ grid, maxCount }: { grid: { day: number; hour: number
 
 // ─── Traffic donut ────────────────────────────────────────────────────────────
 
-const DONUT_COLORS = ["#0070f3", "#7928ca", "#ff0080", "#ff4d4d", "#f5a623", "#79ffe1"];
+const DONUT_COLORS = [
+  "#0070f3",
+  "#7928ca",
+  "#ff0080",
+  "#ff4d4d",
+  "#f5a623",
+  "#79ffe1",
+];
 
-function TrafficDonut({ sources, total }: { sources: { source: string; count: number; pct: number }[]; total: number }) {
+function TrafficDonut({
+  sources,
+  total,
+}: {
+  sources: { source: string; count: number; pct: number }[];
+  total: number;
+}) {
   let cursor = 0;
   const stops = sources.map((s, i) => {
     const deg = (s.count / Math.max(total, 1)) * 360;
@@ -592,7 +893,9 @@ function TrafficDonut({ sources, total }: { sources: { source: string; count: nu
     cursor += deg;
     return { color: DONUT_COLORS[i % DONUT_COLORS.length], from, to: cursor };
   });
-  const gradient = stops.map((s) => `${s.color} ${s.from.toFixed(1)}deg ${s.to.toFixed(1)}deg`).join(", ");
+  const gradient = stops
+    .map((s) => `${s.color} ${s.from.toFixed(1)}deg ${s.to.toFixed(1)}deg`)
+    .join(", ");
 
   return (
     <div className="flex items-center gap-6">
@@ -607,9 +910,16 @@ function TrafficDonut({ sources, total }: { sources: { source: string; count: nu
       <div className="space-y-1.5">
         {sources.map((s, i) => (
           <div key={s.source} className="flex items-center gap-2">
-            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: DONUT_COLORS[i % DONUT_COLORS.length] }} />
-            <span className="text-xs text-muted-foreground truncate max-w-[120px]">{s.source}</span>
-            <span className="text-xs text-muted-foreground tabular-nums ml-auto">{s.pct}%</span>
+            <span
+              className="h-2 w-2 shrink-0 rounded-full"
+              style={{ backgroundColor: DONUT_COLORS[i % DONUT_COLORS.length] }}
+            />
+            <span className="text-xs text-muted-foreground truncate max-w-[120px]">
+              {s.source}
+            </span>
+            <span className="text-xs text-muted-foreground tabular-nums ml-auto">
+              {s.pct}%
+            </span>
           </div>
         ))}
       </div>
@@ -619,20 +929,43 @@ function TrafficDonut({ sources, total }: { sources: { source: string; count: nu
 
 // ─── Click targets list ───────────────────────────────────────────────────────
 
-function ClickList({ title, color, items }: { title: string; color: string; items: { url: string; selector: string; count: number }[] }) {
+function ClickList({
+  title,
+  color,
+  items,
+}: {
+  title: string;
+  color: string;
+  items: { url: string; selector: string; count: number }[];
+}) {
   const max = Math.max(...items.map((i) => i.count), 1);
   return (
     <Panel>
-      <PanelHeader><span className="text-xs font-semibold text-foreground">{title}</span></PanelHeader>
+      <PanelHeader>
+        <span className="text-xs font-semibold text-foreground">{title}</span>
+      </PanelHeader>
       <div className="divide-y divide-border">
         {items.map((item, i) => (
           <div key={i} className="px-4 py-2.5 space-y-1">
             <div className="flex items-center justify-between gap-2">
-              <code className="text-[11px] text-muted-foreground truncate max-w-[70%]">{item.selector}</code>
-              <span className="text-xs font-semibold tabular-nums shrink-0" style={{ color }}>{item.count}×</span>
+              <code className="text-[11px] text-muted-foreground truncate max-w-[70%]">
+                {item.selector}
+              </code>
+              <span
+                className="text-xs font-semibold tabular-nums shrink-0"
+                style={{ color }}
+              >
+                {item.count}×
+              </span>
             </div>
             <div className="h-1 rounded-full bg-muted">
-              <div className="h-full rounded-full" style={{ width: `${(item.count / max) * 100}%`, backgroundColor: color }} />
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: `${(item.count / max) * 100}%`,
+                  backgroundColor: color,
+                }}
+              />
             </div>
           </div>
         ))}
@@ -643,47 +976,79 @@ function ClickList({ title, color, items }: { title: string; color: string; item
 
 // ─── Click heatmap canvas ─────────────────────────────────────────────────────
 
-function ClickHeatmapCanvas({ clicks }: { clicks: { x: number; y: number; type: string; selector: string | null }[] }) {
+function ClickHeatmapCanvas({
+  clicks,
+}: {
+  clicks: { x: number; y: number; type: string; selector: string | null }[];
+}) {
   const [rendered, setRendered] = useState(false);
-  const drawRef = useCallback((canvas: HTMLCanvasElement | null) => {
-    if (!canvas || rendered) return;
-    const W = canvas.width; const H = canvas.height;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.clearRect(0, 0, W, H);
-    ctx.globalCompositeOperation = "screen";
-    for (const c of clicks) {
-      const cx = (c.x / 1280) * W; const cy = (c.y / 800) * H;
-      const r = c.type === "rage_click" ? 36 : c.type === "dead_click" ? 24 : 18;
-      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-      if (c.type === "rage_click") {
-        grad.addColorStop(0, "rgba(224,0,0,0.7)"); grad.addColorStop(1, "rgba(224,0,0,0)");
-      } else if (c.type === "dead_click") {
-        grad.addColorStop(0, "rgba(136,136,136,0.5)"); grad.addColorStop(1, "rgba(136,136,136,0)");
-      } else {
-        grad.addColorStop(0, "rgba(0,112,243,0.55)"); grad.addColorStop(1, "rgba(0,112,243,0)");
+  const drawRef = useCallback(
+    (canvas: HTMLCanvasElement | null) => {
+      if (!canvas || rendered) return;
+      const W = canvas.width;
+      const H = canvas.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.clearRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "screen";
+      for (const c of clicks) {
+        const cx = (c.x / 1280) * W;
+        const cy = (c.y / 800) * H;
+        const r =
+          c.type === "rage_click" ? 36 : c.type === "dead_click" ? 24 : 18;
+        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+        if (c.type === "rage_click") {
+          grad.addColorStop(0, "rgba(224,0,0,0.7)");
+          grad.addColorStop(1, "rgba(224,0,0,0)");
+        } else if (c.type === "dead_click") {
+          grad.addColorStop(0, "rgba(136,136,136,0.5)");
+          grad.addColorStop(1, "rgba(136,136,136,0)");
+        } else {
+          grad.addColorStop(0, "rgba(0,112,243,0.55)");
+          grad.addColorStop(1, "rgba(0,112,243,0)");
+        }
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fill();
       }
-      ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.globalCompositeOperation = "source-over";
-    setRendered(true);
-  }, [clicks, rendered]);
+      ctx.globalCompositeOperation = "source-over";
+      setRendered(true);
+    },
+    [clicks, rendered],
+  );
 
-  const rage   = clicks.filter((c) => c.type === "rage_click").length;
-  const dead   = clicks.filter((c) => c.type === "dead_click").length;
+  const rage = clicks.filter((c) => c.type === "rage_click").length;
+  const dead = clicks.filter((c) => c.type === "dead_click").length;
   const normal = clicks.filter((c) => c.type === "click").length;
 
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-4 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-primary" />Clicks ({normal})</span>
-        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-destructive" />Rage ({rage})</span>
-        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-muted-foreground/40" />Dead ({dead})</span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-primary" />
+          Clicks ({normal})
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-destructive" />
+          Rage ({rage})
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-muted-foreground/40" />
+          Dead ({dead})
+        </span>
       </div>
       <div className="relative rounded-lg overflow-hidden border border-border bg-black">
-        <canvas ref={drawRef} width={1280} height={400} className="w-full block" />
+        <canvas
+          ref={drawRef}
+          width={1280}
+          height={400}
+          className="w-full block"
+        />
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <p className="text-[11px] text-muted-foreground">{clicks.length} click{clicks.length !== 1 ? "s" : ""} plotted</p>
+          <p className="text-[11px] text-muted-foreground">
+            {clicks.length} click{clicks.length !== 1 ? "s" : ""} plotted
+          </p>
         </div>
       </div>
     </div>
@@ -694,19 +1059,33 @@ function ClickHeatmapCanvas({ clicks }: { clicks: { x: number; y: number; type: 
 
 function EventsTab({ projectId }: { projectId: string }) {
   const trpc = useTRPC();
-  const { data, isPending } = useQuery(trpc.events.list.queryOptions({ projectId, limit: 50 }));
+  const { data, isPending } = useQuery(
+    trpc.events.list.queryOptions({ projectId, limit: 50 }),
+  );
 
   if (isPending) return <LoadingRows />;
 
   return (
     <Panel>
       <PanelHeader>
-        <span className="text-[13px] font-semibold text-foreground">Events</span>
-        <span className="text-xs text-muted-foreground">{data?.events.length ?? 0} recent</span>
+        <span className="text-[13px] font-semibold text-foreground">
+          Events
+        </span>
+        <span className="text-xs text-muted-foreground">
+          {data?.events.length ?? 0} recent
+        </span>
       </PanelHeader>
       {!data?.events.length ? (
         <EmptyState
-          icon={<svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11 4a1 1 0 10-2 0v4a1 1 0 102 0V7zm-3 1a1 1 0 10-2 0v3a1 1 0 102 0V8zM8 9a1 1 0 00-2 0v2a1 1 0 102 0V9z" clipRule="evenodd" /></svg>}
+          icon={
+            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <path
+                fillRule="evenodd"
+                d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11 4a1 1 0 10-2 0v4a1 1 0 102 0V7zm-3 1a1 1 0 10-2 0v3a1 1 0 102 0V8zM8 9a1 1 0 00-2 0v2a1 1 0 102 0V9z"
+                clipRule="evenodd"
+              />
+            </svg>
+          }
           title="No events yet"
           desc="Send your first event from the SDK or via the API."
           action={<IngestHint type="event" projectId={projectId} />}
@@ -717,17 +1096,30 @@ function EventsTab({ projectId }: { projectId: string }) {
             <thead>
               <tr className="border-b border-border bg-muted/30">
                 {["Name", "Type", "URL", "Time"].map((h) => (
-                  <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">{h}</th>
+                  <th
+                    key={h}
+                    className="px-4 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap"
+                  >
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {data.events.map((e) => (
                 <tr key={e.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-2.5 font-medium text-foreground text-sm">{e.name}</td>
-                  <td className="px-4 py-2.5"><Badge variant="outline">{e.type}</Badge></td>
-                  <td className="px-4 py-2.5 text-xs text-muted-foreground max-w-[200px] truncate">{e.url ?? "—"}</td>
-                  <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap">{new Date(e.createdAt).toLocaleString()}</td>
+                  <td className="px-4 py-2.5 font-medium text-foreground text-sm">
+                    {e.name}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <Badge variant="outline">{e.type}</Badge>
+                  </td>
+                  <td className="px-4 py-2.5 text-xs text-muted-foreground max-w-[200px] truncate">
+                    {e.url ?? "—"}
+                  </td>
+                  <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
+                    {new Date(e.createdAt).toLocaleString()}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -743,18 +1135,30 @@ function EventsTab({ projectId }: { projectId: string }) {
 function ErrorsTab({ projectId }: { projectId: string }) {
   const trpc = useTRPC();
   const qc = useQueryClient();
-  const [statusFilter, setStatusFilter] = useState<"unresolved" | "resolved" | "ignored" | "all">("unresolved");
+  const [statusFilter, setStatusFilter] = useState<
+    "unresolved" | "resolved" | "ignored" | "all"
+  >("unresolved");
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
 
   const { data: groups, isPending } = useQuery(
-    trpc.errors.list.queryOptions({ projectId, status: statusFilter === "all" ? undefined : statusFilter, limit: 50 }),
+    trpc.errors.list.queryOptions({
+      projectId,
+      status: statusFilter === "all" ? undefined : statusFilter,
+      limit: 50,
+    }),
   );
 
   const updateStatus = useMutation(
     trpc.errors.updateStatus.mutationOptions({
       onSuccess: () => {
-        qc.invalidateQueries({ queryKey: trpc.errors.list.queryKey({ projectId }) });
-        qc.invalidateQueries({ queryKey: trpc.errors.groupById.queryKey({ id: selectedGroupId ?? "" }) });
+        qc.invalidateQueries({
+          queryKey: trpc.errors.list.queryKey({ projectId }),
+        });
+        qc.invalidateQueries({
+          queryKey: trpc.errors.groupById.queryKey({
+            id: selectedGroupId ?? "",
+          }),
+        });
       },
     }),
   );
@@ -763,16 +1167,27 @@ function ErrorsTab({ projectId }: { projectId: string }) {
 
   const STATUS_PILL: Record<string, string> = {
     unresolved: "text-destructive bg-destructive/8 ring-1 ring-destructive/20",
-    resolved:   "text-green-700 dark:text-green-400 bg-green-500/10 ring-1 ring-green-500/20",
-    ignored:    "text-muted-foreground bg-muted ring-1 ring-border",
+    resolved:
+      "text-green-700 dark:text-green-400 bg-green-500/10 ring-1 ring-green-500/20",
+    ignored: "text-muted-foreground bg-muted ring-1 ring-border",
   };
 
-  const filterBtns: ("unresolved" | "resolved" | "ignored" | "all")[] = ["unresolved", "resolved", "ignored", "all"];
+  const filterBtns: ("unresolved" | "resolved" | "ignored" | "all")[] = [
+    "unresolved",
+    "resolved",
+    "ignored",
+    "all",
+  ];
 
   return (
     <div className="flex gap-0 min-h-[540px] -mx-5 sm:-mx-6">
       {/* Issue list */}
-      <div className={cn("flex flex-col border-r border-border overflow-y-auto", selectedGroupId ? "w-[340px] shrink-0" : "flex-1")}>
+      <div
+        className={cn(
+          "flex flex-col border-r border-border overflow-y-auto",
+          selectedGroupId ? "w-[340px] shrink-0" : "flex-1",
+        )}
+      >
         <div className="sticky top-0 z-10 flex items-center gap-1 px-4 py-2.5 border-b border-border bg-background">
           {filterBtns.map((s) => (
             <button
@@ -780,14 +1195,18 @@ function ErrorsTab({ projectId }: { projectId: string }) {
               onClick={() => setStatusFilter(s)}
               className={cn(
                 "rounded-md px-2.5 py-1 text-xs font-medium capitalize transition-colors",
-                statusFilter === s ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted",
+                statusFilter === s
+                  ? "bg-foreground text-background"
+                  : "text-muted-foreground hover:bg-muted",
               )}
             >
               {s}
             </button>
           ))}
           {groups && groups.length > 0 && (
-            <span className="ml-auto text-xs text-muted-foreground">{groups.length} issue{groups.length !== 1 ? "s" : ""}</span>
+            <span className="ml-auto text-xs text-muted-foreground">
+              {groups.length} issue{groups.length !== 1 ? "s" : ""}
+            </span>
           )}
         </div>
 
@@ -797,10 +1216,15 @@ function ErrorsTab({ projectId }: { projectId: string }) {
               <>
                 <span className="text-2xl">✓</span>
                 <p className="text-sm font-medium text-foreground">All clear</p>
-                <p className="text-xs text-muted-foreground max-w-xs">No unresolved errors. Issues appear here automatically when the SDK captures them.</p>
+                <p className="text-xs text-muted-foreground max-w-xs">
+                  No unresolved errors. Issues appear here automatically when
+                  the SDK captures them.
+                </p>
               </>
             ) : (
-              <p className="text-sm text-muted-foreground">No issues in this category.</p>
+              <p className="text-sm text-muted-foreground">
+                No issues in this category.
+              </p>
             )}
           </div>
         ) : (
@@ -808,20 +1232,37 @@ function ErrorsTab({ projectId }: { projectId: string }) {
             {groups.map((g) => (
               <button
                 key={g.id}
-                onClick={() => setSelectedGroupId(g.id === selectedGroupId ? null : g.id)}
+                onClick={() =>
+                  setSelectedGroupId(g.id === selectedGroupId ? null : g.id)
+                }
                 className={cn(
                   "w-full text-left px-4 py-3.5 transition-colors",
-                  selectedGroupId === g.id ? "bg-muted/60" : "hover:bg-muted/30",
+                  selectedGroupId === g.id
+                    ? "bg-muted/60"
+                    : "hover:bg-muted/30",
                 )}
               >
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-mono font-medium bg-muted text-muted-foreground uppercase">{g.type}</span>
-                    <span className={cn("shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium", STATUS_PILL[g.status] ?? STATUS_PILL.unresolved)}>{g.status}</span>
+                    <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-mono font-medium bg-muted text-muted-foreground uppercase">
+                      {g.type}
+                    </span>
+                    <span
+                      className={cn(
+                        "shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+                        STATUS_PILL[g.status] ?? STATUS_PILL.unresolved,
+                      )}
+                    >
+                      {g.status}
+                    </span>
                   </div>
-                  <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground font-mono">{g.occurrences.toLocaleString()}×</span>
+                  <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground font-mono">
+                    {g.occurrences.toLocaleString()}×
+                  </span>
                 </div>
-                <p className="text-sm font-medium text-foreground leading-snug line-clamp-2">{g.message}</p>
+                <p className="text-sm font-medium text-foreground leading-snug line-clamp-2">
+                  {g.message}
+                </p>
                 <div className="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">
                   <span>First {relativeTime(new Date(g.firstSeenAt))}</span>
                   <span>·</span>
@@ -850,50 +1291,101 @@ function ErrorsTab({ projectId }: { projectId: string }) {
 
 // ─── Error detail panel ───────────────────────────────────────────────────────
 
-function ErrorDetail({ groupId, onClose, onUpdateStatus, isUpdating }: {
+function ErrorDetail({
+  groupId,
+  onClose,
+  onUpdateStatus,
+  isUpdating,
+}: {
   groupId: string;
   onClose: () => void;
-  onUpdateStatus: (id: string, status: "unresolved" | "resolved" | "ignored") => void;
+  onUpdateStatus: (
+    id: string,
+    status: "unresolved" | "resolved" | "ignored",
+  ) => void;
   isUpdating: boolean;
 }) {
   const trpc = useTRPC();
   const [selectedEventIdx, setSelectedEventIdx] = useState(0);
   const [stackExpanded, setStackExpanded] = useState(true);
   const [breadcrumbsExpanded, setBreadcrumbsExpanded] = useState(true);
-  const { data: group, isPending } = useQuery(trpc.errors.groupById.queryOptions({ id: groupId }));
+  const { data: group, isPending } = useQuery(
+    trpc.errors.groupById.queryOptions({ id: groupId }),
+  );
 
   if (isPending) return <LoadingRows />;
-  if (!group) return <div className="p-6 text-sm text-muted-foreground">Error not found.</div>;
+  if (!group)
+    return (
+      <div className="p-6 text-sm text-muted-foreground">Error not found.</div>
+    );
 
   const events = group.events ?? [];
   const event = events[selectedEventIdx] ?? null;
   const stackLines = parseStack(event?.stack ?? null);
-  type Breadcrumb = { type: string; message: string; ts: number; data?: unknown };
+  type Breadcrumb = {
+    type: string;
+    message: string;
+    ts: number;
+    data?: unknown;
+  };
   let breadcrumbs: Breadcrumb[] = [];
-  try { breadcrumbs = JSON.parse(event?.breadcrumbs ?? "[]"); } catch {}
+  try {
+    breadcrumbs = JSON.parse(event?.breadcrumbs ?? "[]");
+  } catch {}
 
   return (
     <div className="flex flex-col h-full">
       <div className="sticky top-0 z-10 flex items-start gap-3 px-5 py-3.5 border-b border-border bg-background">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="rounded px-1.5 py-0.5 text-[10px] font-mono font-medium bg-destructive/10 text-destructive ring-1 ring-destructive/20 uppercase">{group.type}</span>
-            <span className="text-[11px] text-muted-foreground tabular-nums">{group.occurrences.toLocaleString()} occurrence{group.occurrences !== 1 ? "s" : ""}</span>
+            <span className="rounded px-1.5 py-0.5 text-[10px] font-mono font-medium bg-destructive/10 text-destructive ring-1 ring-destructive/20 uppercase">
+              {group.type}
+            </span>
+            <span className="text-[11px] text-muted-foreground tabular-nums">
+              {group.occurrences.toLocaleString()} occurrence
+              {group.occurrences !== 1 ? "s" : ""}
+            </span>
           </div>
-          <p className="text-sm font-semibold text-foreground leading-snug break-words">{group.message}</p>
+          <p className="text-sm font-semibold text-foreground leading-snug break-words">
+            {group.message}
+          </p>
         </div>
         <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
           {group.status !== "resolved" && (
-            <button onClick={() => onUpdateStatus(group.id, "resolved")} disabled={isUpdating} className="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50">Resolve</button>
+            <button
+              onClick={() => onUpdateStatus(group.id, "resolved")}
+              disabled={isUpdating}
+              className="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+            >
+              Resolve
+            </button>
           )}
           {group.status !== "ignored" && (
-            <button onClick={() => onUpdateStatus(group.id, "ignored")} disabled={isUpdating} className="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50">Ignore</button>
+            <button
+              onClick={() => onUpdateStatus(group.id, "ignored")}
+              disabled={isUpdating}
+              className="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
+            >
+              Ignore
+            </button>
           )}
           {group.status !== "unresolved" && (
-            <button onClick={() => onUpdateStatus(group.id, "unresolved")} disabled={isUpdating} className="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50">Reopen</button>
+            <button
+              onClick={() => onUpdateStatus(group.id, "unresolved")}
+              disabled={isUpdating}
+              className="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
+            >
+              Reopen
+            </button>
           )}
-          <button onClick={onClose} className="ml-1 p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" aria-label="Close">
-            <svg viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4"><path d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z" /></svg>
+          <button
+            onClick={onClose}
+            className="ml-1 p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Close"
+          >
+            <svg viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4">
+              <path d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z" />
+            </svg>
           </button>
         </div>
       </div>
@@ -903,28 +1395,55 @@ function ErrorDetail({ groupId, onClose, onUpdateStatus, isUpdating }: {
           <span className="text-xs text-muted-foreground">Occurrence:</span>
           <div className="flex items-center gap-1">
             {events.map((_, i) => (
-              <button key={i} onClick={() => setSelectedEventIdx(i)} className={cn("h-5 w-5 rounded text-[10px] font-mono transition-colors", selectedEventIdx === i ? "bg-foreground text-background" : "bg-muted text-muted-foreground hover:bg-accent")}>
+              <button
+                key={i}
+                onClick={() => setSelectedEventIdx(i)}
+                className={cn(
+                  "h-5 w-5 rounded text-[10px] font-mono transition-colors",
+                  selectedEventIdx === i
+                    ? "bg-foreground text-background"
+                    : "bg-muted text-muted-foreground hover:bg-accent",
+                )}
+              >
                 {i + 1}
               </button>
             ))}
           </div>
-          {event && <span className="ml-auto text-xs text-muted-foreground">{new Date(event.createdAt).toLocaleString()}</span>}
+          {event && (
+            <span className="ml-auto text-xs text-muted-foreground">
+              {new Date(event.createdAt).toLocaleString()}
+            </span>
+          )}
         </div>
       )}
 
       <div className="flex-1 overflow-y-auto">
-        <DetailSection title="Stack Trace" expanded={stackExpanded} onToggle={() => setStackExpanded((v) => !v)}>
+        <DetailSection
+          title="Stack Trace"
+          expanded={stackExpanded}
+          onToggle={() => setStackExpanded((v) => !v)}
+        >
           {!event?.stack && !stackLines.length ? (
-            <p className="px-4 py-3 text-xs text-muted-foreground">No stack trace captured.</p>
+            <p className="px-4 py-3 text-xs text-muted-foreground">
+              No stack trace captured.
+            </p>
           ) : (
             <div className="overflow-x-auto">
               <div className="min-w-0 font-mono text-xs bg-zinc-950 dark:bg-black">
                 <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-900/50">
-                  <span className="text-red-400 font-semibold">{group.type}</span>
+                  <span className="text-red-400 font-semibold">
+                    {group.type}
+                  </span>
                   <span className="text-zinc-300">: {group.message}</span>
                 </div>
-                {stackLines.length > 0 ? stackLines.map((line, i) => <StackFrame key={i} frame={line} isTop={i === 0} />) : (
-                  <pre className="px-4 py-3 text-zinc-400 whitespace-pre-wrap leading-relaxed text-[11px]">{event?.stack}</pre>
+                {stackLines.length > 0 ? (
+                  stackLines.map((line, i) => (
+                    <StackFrame key={i} frame={line} isTop={i === 0} />
+                  ))
+                ) : (
+                  <pre className="px-4 py-3 text-zinc-400 whitespace-pre-wrap leading-relaxed text-[11px]">
+                    {event?.stack}
+                  </pre>
                 )}
               </div>
             </div>
@@ -932,20 +1451,46 @@ function ErrorDetail({ groupId, onClose, onUpdateStatus, isUpdating }: {
         </DetailSection>
 
         {breadcrumbs.length > 0 && (
-          <DetailSection title={`Breadcrumbs (${breadcrumbs.length})`} expanded={breadcrumbsExpanded} onToggle={() => setBreadcrumbsExpanded((v) => !v)}>
+          <DetailSection
+            title={`Breadcrumbs (${breadcrumbs.length})`}
+            expanded={breadcrumbsExpanded}
+            onToggle={() => setBreadcrumbsExpanded((v) => !v)}
+          >
             <div className="divide-y divide-border">
               {[...breadcrumbs].reverse().map((b, i) => {
-                const style = BREADCRUMB_STYLES[b.type] ?? BREADCRUMB_STYLES.default;
+                const style =
+                  BREADCRUMB_STYLES[b.type] ?? BREADCRUMB_STYLES.default;
                 return (
-                  <div key={i} className="flex items-start gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors">
-                    <span className={cn("mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px]", style.bg)}>{style.icon}</span>
+                  <div
+                    key={i}
+                    className="flex items-start gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors"
+                  >
+                    <span
+                      className={cn(
+                        "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px]",
+                        style.bg,
+                      )}
+                    >
+                      {style.icon}
+                    </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline gap-2">
-                        <span className={cn("text-[10px] font-medium uppercase tracking-wide", style.label)}>{b.type}</span>
-                        <span className="text-[11px] text-foreground truncate">{b.message}</span>
+                        <span
+                          className={cn(
+                            "text-[10px] font-medium uppercase tracking-wide",
+                            style.label,
+                          )}
+                        >
+                          {b.type}
+                        </span>
+                        <span className="text-[11px] text-foreground truncate">
+                          {b.message}
+                        </span>
                       </div>
                     </div>
-                    <span className="shrink-0 text-[10px] font-mono text-muted-foreground tabular-nums">{b.ts ? new Date(b.ts).toLocaleTimeString() : ""}</span>
+                    <span className="shrink-0 text-[10px] font-mono text-muted-foreground tabular-nums">
+                      {b.ts ? new Date(b.ts).toLocaleTimeString() : ""}
+                    </span>
                   </div>
                 );
               })}
@@ -958,17 +1503,28 @@ function ErrorDetail({ groupId, onClose, onUpdateStatus, isUpdating }: {
             <div className="grid grid-cols-2 gap-x-6 gap-y-2 px-4 py-3">
               {[
                 ["URL", event.url],
-                ["Line", event.line != null ? `${event.line}${event.col != null ? `:${event.col}` : ""}` : null],
+                [
+                  "Line",
+                  event.line != null
+                    ? `${event.line}${event.col != null ? `:${event.col}` : ""}`
+                    : null,
+                ],
                 ["Visitor", event.visitorId],
                 ["IP", event.ipAddress],
                 ["User Agent", event.userAgent],
                 ["Captured", new Date(event.createdAt).toLocaleString()],
-              ].filter(([, v]) => v).map(([k, v]) => (
-                <div key={k as string} className="min-w-0">
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-0.5">{k as string}</p>
-                  <p className="text-xs text-foreground truncate font-mono">{v as string}</p>
-                </div>
-              ))}
+              ]
+                .filter(([, v]) => v)
+                .map(([k, v]) => (
+                  <div key={k as string} className="min-w-0">
+                    <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-0.5">
+                      {k as string}
+                    </p>
+                    <p className="text-xs text-foreground truncate font-mono">
+                      {v as string}
+                    </p>
+                  </div>
+                ))}
             </div>
           </DetailSection>
         )}
@@ -979,33 +1535,110 @@ function ErrorDetail({ groupId, onClose, onUpdateStatus, isUpdating }: {
 
 // ─── Stack frame ──────────────────────────────────────────────────────────────
 
-interface ParsedFrame { raw: string; fn: string | null; file: string | null; line: number | null; col: number | null; isInternal: boolean; }
+interface ParsedFrame {
+  raw: string;
+  fn: string | null;
+  file: string | null;
+  line: number | null;
+  col: number | null;
+  isInternal: boolean;
+}
 
 function parseStack(stack: string | null | undefined): ParsedFrame[] {
   if (!stack) return [];
-  return stack.split("\n").map((l) => l.trim()).filter((l) => l.startsWith("at ")).map((raw) => {
-    const match = raw.match(/^at (.+?) \((.+?):(\d+):(\d+)\)$/) ?? raw.match(/^at (.+?):(\d+):(\d+)$/);
-    if (!match) return { raw, fn: null, file: null, line: null, col: null, isInternal: false };
-    if (match.length === 5) return { raw, fn: match[1], file: match[2], line: parseInt(match[3]), col: parseInt(match[4]), isInternal: isInternalFrame(match[2]!) };
-    return { raw, fn: null, file: match[1], line: parseInt(match[2]), col: parseInt(match[3]), isInternal: isInternalFrame(match[1]!) };
-  });
+  return stack
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.startsWith("at "))
+    .map((raw) => {
+      const match =
+        raw.match(/^at (.+?) \((.+?):(\d+):(\d+)\)$/) ??
+        raw.match(/^at (.+?):(\d+):(\d+)$/);
+      if (!match)
+        return {
+          raw,
+          fn: null,
+          file: null,
+          line: null,
+          col: null,
+          isInternal: false,
+        };
+      if (match.length === 5)
+        return {
+          raw,
+          fn: match[1],
+          file: match[2],
+          line: parseInt(match[3]),
+          col: parseInt(match[4]),
+          isInternal: isInternalFrame(match[2]!),
+        };
+      return {
+        raw,
+        fn: null,
+        file: match[1],
+        line: parseInt(match[2]),
+        col: parseInt(match[3]),
+        isInternal: isInternalFrame(match[1]!),
+      };
+    });
 }
 
 function isInternalFrame(file: string) {
-  return file.includes("node_modules") || file.startsWith("node:") || file.includes("<anonymous>") || file.includes("webpack-internal") || file.includes("next/dist");
+  return (
+    file.includes("node_modules") ||
+    file.startsWith("node:") ||
+    file.includes("<anonymous>") ||
+    file.includes("webpack-internal") ||
+    file.includes("next/dist")
+  );
 }
 
 function StackFrame({ frame, isTop }: { frame: ParsedFrame; isTop: boolean }) {
   const dim = frame.isInternal;
   return (
-    <div className={cn("flex items-start border-b border-zinc-800/50 last:border-0", isTop ? "bg-red-950/20" : dim ? "opacity-40" : "")}>
-      <div className={cn("w-1 self-stretch shrink-0", isTop ? "bg-red-500" : "bg-transparent")} />
+    <div
+      className={cn(
+        "flex items-start border-b border-zinc-800/50 last:border-0",
+        isTop ? "bg-red-950/20" : dim ? "opacity-40" : "",
+      )}
+    >
+      <div
+        className={cn(
+          "w-1 self-stretch shrink-0",
+          isTop ? "bg-red-500" : "bg-transparent",
+        )}
+      />
       <div className="flex-1 px-3 py-2 min-w-0">
-        <p className={cn("text-[12px] leading-tight", isTop ? "text-zinc-100 font-medium" : dim ? "text-zinc-600" : "text-zinc-300")}>{frame.fn ?? "<anonymous>"}</p>
+        <p
+          className={cn(
+            "text-[12px] leading-tight",
+            isTop
+              ? "text-zinc-100 font-medium"
+              : dim
+                ? "text-zinc-600"
+                : "text-zinc-300",
+          )}
+        >
+          {frame.fn ?? "<anonymous>"}
+        </p>
         {frame.file && (
-          <p className={cn("text-[11px] mt-0.5", isTop ? "text-zinc-400" : "text-zinc-600")}>
-            <span className={cn(isTop ? "text-zinc-300" : "text-zinc-500")}>{shortenPath(frame.file)}</span>
-            {frame.line != null && <span className={cn("ml-1", isTop ? "text-red-400" : "text-zinc-600")}>:{frame.line}{frame.col != null ? `:${frame.col}` : ""}</span>}
+          <p
+            className={cn(
+              "text-[11px] mt-0.5",
+              isTop ? "text-zinc-400" : "text-zinc-600",
+            )}
+          >
+            <span className={cn(isTop ? "text-zinc-300" : "text-zinc-500")}>
+              {shortenPath(frame.file)}
+            </span>
+            {frame.line != null && (
+              <span
+                className={cn("ml-1", isTop ? "text-red-400" : "text-zinc-600")}
+              >
+                :{frame.line}
+                {frame.col != null ? `:${frame.col}` : ""}
+              </span>
+            )}
           </p>
         )}
       </div>
@@ -1014,21 +1647,42 @@ function StackFrame({ frame, isTop }: { frame: ParsedFrame; isTop: boolean }) {
 }
 
 function shortenPath(file: string) {
-  try { const url = new URL(file); return url.pathname; } catch {}
+  try {
+    const url = new URL(file);
+    return url.pathname;
+  } catch {}
   const parts = file.replace(/\\/g, "/").split("/");
   return parts.length > 4 ? "…/" + parts.slice(-3).join("/") : file;
 }
 
 // ─── Collapsible section ──────────────────────────────────────────────────────
 
-function DetailSection({ title, expanded, onToggle, children }: {
-  title: string; expanded: boolean; onToggle?: () => void; children: React.ReactNode;
+function DetailSection({
+  title,
+  expanded,
+  onToggle,
+  children,
+}: {
+  title: string;
+  expanded: boolean;
+  onToggle?: () => void;
+  children: React.ReactNode;
 }) {
   return (
     <div className="border-b border-border last:border-0">
-      <button onClick={onToggle} className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold text-muted-foreground hover:bg-muted/30 transition-colors uppercase tracking-wider">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold text-muted-foreground hover:bg-muted/30 transition-colors uppercase tracking-wider"
+      >
         {title}
-        <svg viewBox="0 0 16 16" fill="currentColor" className={cn("h-3.5 w-3.5 transition-transform", expanded ? "rotate-180" : "")}>
+        <svg
+          viewBox="0 0 16 16"
+          fill="currentColor"
+          className={cn(
+            "h-3.5 w-3.5 transition-transform",
+            expanded ? "rotate-180" : "",
+          )}
+        >
           <path d="M4.22 6.22a.75.75 0 011.06 0L8 8.94l2.72-2.72a.75.75 0 111.06 1.06l-3.25 3.25a.75.75 0 01-1.06 0L4.22 7.28a.75.75 0 010-1.06z" />
         </svg>
       </button>
@@ -1037,13 +1691,36 @@ function DetailSection({ title, expanded, onToggle, children }: {
   );
 }
 
-const BREADCRUMB_STYLES: Record<string, { icon: string; bg: string; label: string }> = {
-  "console.error": { icon: "✕", bg: "bg-red-100 dark:bg-red-900/30 text-red-500",   label: "text-red-500" },
-  "console.warn":  { icon: "!", bg: "bg-amber-100 dark:bg-amber-900/30 text-amber-500", label: "text-amber-500" },
-  "console.log":   { icon: "›", bg: "bg-muted text-muted-foreground",                label: "text-muted-foreground" },
-  click:           { icon: "↗", bg: "bg-primary/10 text-primary",                   label: "text-primary" },
-  error:           { icon: "✕", bg: "bg-red-100 dark:bg-red-900/30 text-red-500",   label: "text-red-500" },
-  default:         { icon: "·", bg: "bg-muted text-muted-foreground",                label: "text-muted-foreground" },
+const BREADCRUMB_STYLES: Record<
+  string,
+  { icon: string; bg: string; label: string }
+> = {
+  "console.error": {
+    icon: "✕",
+    bg: "bg-red-100 dark:bg-red-900/30 text-red-500",
+    label: "text-red-500",
+  },
+  "console.warn": {
+    icon: "!",
+    bg: "bg-amber-100 dark:bg-amber-900/30 text-amber-500",
+    label: "text-amber-500",
+  },
+  "console.log": {
+    icon: "›",
+    bg: "bg-muted text-muted-foreground",
+    label: "text-muted-foreground",
+  },
+  click: { icon: "↗", bg: "bg-primary/10 text-primary", label: "text-primary" },
+  error: {
+    icon: "✕",
+    bg: "bg-red-100 dark:bg-red-900/30 text-red-500",
+    label: "text-red-500",
+  },
+  default: {
+    icon: "·",
+    bg: "bg-muted text-muted-foreground",
+    label: "text-muted-foreground",
+  },
 };
 
 // ─── Sessions tab ─────────────────────────────────────────────────────────────
@@ -1051,26 +1728,54 @@ const BREADCRUMB_STYLES: Record<string, { icon: string; bg: string; label: strin
 function SessionsTab({ projectId }: { projectId: string }) {
   const trpc = useTRPC();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const { data: sessions, isPending } = useQuery(trpc.sessions.list.queryOptions({ projectId, limit: 50 }));
+  const { data: sessions, isPending } = useQuery(
+    trpc.sessions.list.queryOptions({ projectId, limit: 50 }),
+  );
 
   if (isPending) return <LoadingRows />;
 
-  const fmtDur = (ms: number) => { if (!ms) return "< 1s"; const s = Math.round(ms / 1000); return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`; };
-  const fmtPath = (url: string | null) => { if (!url) return "—"; try { return new URL(url).pathname; } catch { return url; } };
+  const fmtDur = (ms: number) => {
+    if (!ms) return "< 1s";
+    const s = Math.round(ms / 1000);
+    return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`;
+  };
+  const fmtPath = (url: string | null) => {
+    if (!url) return "—";
+    try {
+      return new URL(url).pathname;
+    } catch {
+      return url;
+    }
+  };
 
   return (
     <div className="space-y-4">
       <Panel>
         <PanelHeader>
-          <span className="text-[13px] font-semibold text-foreground">Session Recordings</span>
+          <span className="text-[13px] font-semibold text-foreground">
+            Session Recordings
+          </span>
           {selectedId && (
-            <button onClick={() => setSelectedId(null)} className="text-xs text-muted-foreground hover:text-foreground transition-colors">✕ Close replay</button>
+            <button
+              onClick={() => setSelectedId(null)}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              ✕ Close replay
+            </button>
           )}
         </PanelHeader>
 
         {!sessions?.length ? (
           <EmptyState
-            icon={<svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>}
+            icon={
+              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            }
             title="No session recordings yet"
             desc="Sessions are automatically captured by the SDK and flushed every 5s and on page unload."
           />
@@ -1079,30 +1784,74 @@ function SessionsTab({ projectId }: { projectId: string }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
-                  {["Visitor", "Start URL", "Duration", "Clicks", "Errors", "Started", ""].map((h) => (
-                    <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">{h}</th>
+                  {[
+                    "Visitor",
+                    "Start URL",
+                    "Duration",
+                    "Clicks",
+                    "Errors",
+                    "Started",
+                    "",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="px-4 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap"
+                    >
+                      {h}
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {sessions.map((s) => (
-                  <tr key={s.id} onClick={() => setSelectedId(s.id === selectedId ? null : s.id)} className={cn("cursor-pointer transition-colors", selectedId === s.id ? "bg-primary/5" : "hover:bg-muted/30")}>
-                    <td className="px-4 py-2.5"><code className="text-xs text-muted-foreground font-mono">{s.visitorId.slice(0, 8)}…</code></td>
-                    <td className="px-4 py-2.5 max-w-[160px]"><p className="truncate text-xs text-foreground">{fmtPath(s.startUrl)}</p></td>
-                    <td className="px-4 py-2.5 tabular-nums text-xs text-foreground whitespace-nowrap">{fmtDur(s.duration)}</td>
+                  <tr
+                    key={s.id}
+                    onClick={() =>
+                      setSelectedId(s.id === selectedId ? null : s.id)
+                    }
+                    className={cn(
+                      "cursor-pointer transition-colors",
+                      selectedId === s.id
+                        ? "bg-primary/5"
+                        : "hover:bg-muted/30",
+                    )}
+                  >
+                    <td className="px-4 py-2.5">
+                      <code className="text-xs text-muted-foreground font-mono">
+                        {s.visitorId.slice(0, 8)}…
+                      </code>
+                    </td>
+                    <td className="px-4 py-2.5 max-w-[160px]">
+                      <p className="truncate text-xs text-foreground">
+                        {fmtPath(s.startUrl)}
+                      </p>
+                    </td>
+                    <td className="px-4 py-2.5 tabular-nums text-xs text-foreground whitespace-nowrap">
+                      {fmtDur(s.duration)}
+                    </td>
                     <td className="px-4 py-2.5 tabular-nums text-xs text-foreground">
                       {s.clickCount}
-                      {s.rageClickCount > 0 && <span className="ml-1.5 text-[10px] text-orange-500">{s.rageClickCount} rage</span>}
+                      {s.rageClickCount > 0 && (
+                        <span className="ml-1.5 text-[10px] text-orange-500">
+                          {s.rageClickCount} rage
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-2.5">
                       {s.errorCount > 0 ? (
                         <span className="inline-flex items-center rounded-full bg-destructive/10 border border-destructive/20 px-2 py-0.5 text-[11px] font-medium text-destructive">
                           {s.errorCount} error{s.errorCount !== 1 ? "s" : ""}
                         </span>
-                      ) : <span className="text-xs text-muted-foreground">—</span>}
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
                     </td>
-                    <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap">{new Date(s.createdAt).toLocaleString()}</td>
-                    <td className="px-4 py-2.5 text-xs text-primary whitespace-nowrap">{selectedId === s.id ? "▲ Hide" : "▶ Watch"}</td>
+                    <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
+                      {new Date(s.createdAt).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-primary whitespace-nowrap">
+                      {selectedId === s.id ? "▲ Hide" : "▶ Watch"}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -1124,19 +1873,32 @@ function SessionsTab({ projectId }: { projectId: string }) {
 
 function PageViewsTab({ projectId }: { projectId: string }) {
   const trpc = useTRPC();
-  const { data, isPending } = useQuery(trpc.reports.overview.queryOptions({ projectId, days: 30 }));
+  const { data, isPending } = useQuery(
+    trpc.reports.overview.queryOptions({ projectId, days: 30 }),
+  );
 
   if (isPending) return <LoadingRows />;
 
   return (
     <Panel>
       <PanelHeader>
-        <span className="text-[13px] font-semibold text-foreground">Top Pages</span>
+        <span className="text-[13px] font-semibold text-foreground">
+          Top Pages
+        </span>
         <span className="text-xs text-muted-foreground">last 30 days</span>
       </PanelHeader>
       {!data?.topPages.length ? (
         <EmptyState
-          icon={<svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" /></svg>}
+          icon={
+            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+              <path
+                fillRule="evenodd"
+                d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+                clipRule="evenodd"
+              />
+            </svg>
+          }
           title="No page views yet"
           desc="Page views are tracked automatically by the SDK."
           action={<IngestHint type="pageview" projectId={projectId} />}
@@ -1147,15 +1909,24 @@ function PageViewsTab({ projectId }: { projectId: string }) {
             <thead>
               <tr className="border-b border-border bg-muted/30">
                 {["Page", "Views"].map((h) => (
-                  <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
+                  <th
+                    key={h}
+                    className="px-4 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider"
+                  >
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {data.topPages.map((p) => (
                 <tr key={p.url} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-2.5 text-sm text-foreground">{p.url}</td>
-                  <td className="px-4 py-2.5 tabular-nums font-medium text-foreground">{p.count.toLocaleString()}</td>
+                  <td className="px-4 py-2.5 text-sm text-foreground">
+                    {p.url}
+                  </td>
+                  <td className="px-4 py-2.5 tabular-nums font-medium text-foreground">
+                    {p.count.toLocaleString()}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -1174,60 +1945,120 @@ function ApiKeysTab({ projectId }: { projectId: string }) {
   const [open, setOpen] = useState(false);
   const [newKey, setNewKey] = useState<string | null>(null);
 
-  const { data: keys, isPending } = useQuery(trpc.projects.listApiKeys.queryOptions({ projectId }));
+  const { data: keys, isPending } = useQuery(
+    trpc.projects.listApiKeys.queryOptions({ projectId }),
+  );
 
-  const create = useMutation(trpc.projects.createApiKey.mutationOptions({
-    onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: trpc.projects.listApiKeys.queryKey({ projectId }) });
-      setNewKey(data.key);
-      setOpen(false);
-    },
-  }));
+  const create = useMutation(
+    trpc.projects.createApiKey.mutationOptions({
+      onSuccess: (data) => {
+        qc.invalidateQueries({
+          queryKey: trpc.projects.listApiKeys.queryKey({ projectId }),
+        });
+        setNewKey(data.key);
+        setOpen(false);
+      },
+    }),
+  );
 
-  const revoke = useMutation(trpc.projects.revokeApiKey.mutationOptions({
-    onSuccess: () => qc.invalidateQueries({ queryKey: trpc.projects.listApiKeys.queryKey({ projectId }) }),
-  }));
+  const revoke = useMutation(
+    trpc.projects.revokeApiKey.mutationOptions({
+      onSuccess: () =>
+        qc.invalidateQueries({
+          queryKey: trpc.projects.listApiKeys.queryKey({ projectId }),
+        }),
+    }),
+  );
 
   return (
     <div className="space-y-4">
       {/* New key banner */}
       {newKey && (
         <div className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-4 space-y-2">
-          <p className="text-sm font-semibold text-green-800 dark:text-green-300">Your new API key — copy it now, it won&apos;t be shown again.</p>
+          <p className="text-sm font-semibold text-green-800 dark:text-green-300">
+            Your new API key — copy it now, it won&apos;t be shown again.
+          </p>
           <div className="flex items-center gap-2">
-            <code className="flex-1 rounded-md bg-background border border-border px-3 py-2 text-xs font-mono text-foreground break-all">{newKey}</code>
-            <button onClick={() => navigator.clipboard.writeText(newKey)} className="shrink-0 rounded-md border border-border px-3 py-2 text-xs font-medium hover:bg-muted transition-colors">Copy</button>
+            <code className="flex-1 rounded-md bg-background border border-border px-3 py-2 text-xs font-mono text-foreground break-all">
+              {newKey}
+            </code>
+            <button
+              onClick={() => navigator.clipboard.writeText(newKey)}
+              className="shrink-0 rounded-md border border-border px-3 py-2 text-xs font-medium hover:bg-muted transition-colors"
+            >
+              Copy
+            </button>
           </div>
-          <button onClick={() => setNewKey(null)} className="text-xs text-green-700 dark:text-green-400 hover:underline">I&apos;ve saved it ✓</button>
+          <button
+            onClick={() => setNewKey(null)}
+            className="text-xs text-green-700 dark:text-green-400 hover:underline"
+          >
+            I&apos;ve saved it ✓
+          </button>
         </div>
       )}
 
       <Panel>
         <PanelHeader>
-          <span className="text-[13px] font-semibold text-foreground">API Keys</span>
-          <Button size="sm" variant="primary" onClick={() => setOpen(true)}>New key</Button>
+          <span className="text-[13px] font-semibold text-foreground">
+            API Keys
+          </span>
+          <Button size="sm" variant="primary" onClick={() => setOpen(true)}>
+            New key
+          </Button>
         </PanelHeader>
 
-        {isPending ? <LoadingRows /> : !keys?.length ? (
-          <div className="px-4 py-8 text-center text-sm text-muted-foreground">No API keys yet. Create one to start sending data.</div>
+        {isPending ? (
+          <LoadingRows />
+        ) : !keys?.length ? (
+          <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+            No API keys yet. Create one to start sending data.
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
                   {["Name", "Prefix", "Last used", "Created", ""].map((h) => (
-                    <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">{h}</th>
+                    <th
+                      key={h}
+                      className="px-4 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap"
+                    >
+                      {h}
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {keys.map((k) => (
-                  <tr key={k.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-2.5 font-medium text-foreground">{k.name}</td>
-                    <td className="px-4 py-2.5"><code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono text-muted-foreground">{k.prefix}••••••••</code></td>
-                    <td className="px-4 py-2.5 text-xs text-muted-foreground">{k.lastUsedAt ? new Date(k.lastUsedAt).toLocaleDateString() : "Never"}</td>
-                    <td className="px-4 py-2.5 text-xs text-muted-foreground">{new Date(k.createdAt).toLocaleDateString()}</td>
-                    <td className="px-4 py-2.5"><button onClick={() => revoke.mutate({ id: k.id })} className="text-xs text-destructive hover:underline">Revoke</button></td>
+                  <tr
+                    key={k.id}
+                    className="hover:bg-muted/30 transition-colors"
+                  >
+                    <td className="px-4 py-2.5 font-medium text-foreground">
+                      {k.name}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono text-muted-foreground">
+                        {k.prefix}••••••••
+                      </code>
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                      {k.lastUsedAt
+                        ? new Date(k.lastUsedAt).toLocaleDateString()
+                        : "Never"}
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                      {new Date(k.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <button
+                        onClick={() => revoke.mutate({ id: k.id })}
+                        className="text-xs text-destructive hover:underline"
+                      >
+                        Revoke
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -1238,15 +2069,41 @@ function ApiKeysTab({ projectId }: { projectId: string }) {
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>New API Key</DialogTitle></DialogHeader>
-          <form onSubmit={(e) => { e.preventDefault(); const fd = new FormData(e.currentTarget); create.mutate({ projectId, name: fd.get("name") as string }); }} className="space-y-4">
+          <DialogHeader>
+            <DialogTitle>New API Key</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const fd = new FormData(e.currentTarget);
+              create.mutate({ projectId, name: fd.get("name") as string });
+            }}
+            className="space-y-4"
+          >
             <div className="space-y-1.5">
               <Label htmlFor="keyname">Name</Label>
-              <Input id="keyname" name="name" required placeholder="Production" />
+              <Input
+                id="keyname"
+                name="name"
+                required
+                placeholder="Production"
+              />
             </div>
             <DialogFooter>
-              <Button type="button" variant="secondary" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button type="submit" variant="primary" disabled={create.isPending}>{create.isPending ? "Creating…" : "Create"}</Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={create.isPending}
+              >
+                {create.isPending ? "Creating…" : "Create"}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -1317,16 +2174,28 @@ window.clarity.page(window.location.href);`,
     <div className="space-y-6 max-w-2xl">
       <div>
         <h3 className="text-[13px] font-semibold text-foreground">SDK Setup</h3>
-        <p className="mt-0.5 text-xs text-muted-foreground">Get up and running in under 2 minutes. No build step required.</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Get up and running in under 2 minutes. No build step required.
+        </p>
       </div>
 
       {/* Prerequisites */}
       <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 space-y-1">
-        <p className="text-xs font-semibold text-foreground">Before you start</p>
+        <p className="text-xs font-semibold text-foreground">
+          Before you start
+        </p>
         <ul className="space-y-0.5 text-xs text-muted-foreground list-disc list-inside">
           <li>Create a project (you're here ✓)</li>
-          <li>Generate an API key in the <strong className="text-foreground">API keys</strong> tab</li>
-          <li>Ingest service running at <code className="font-mono bg-background border border-border rounded px-1 text-[11px]">{INGEST}</code></li>
+          <li>
+            Generate an API key in the{" "}
+            <strong className="text-foreground">API keys</strong> tab
+          </li>
+          <li>
+            Ingest service running at{" "}
+            <code className="font-mono bg-background border border-border rounded px-1 text-[11px]">
+              {INGEST}
+            </code>
+          </li>
         </ul>
       </div>
 
@@ -1335,18 +2204,24 @@ window.clarity.page(window.location.href);`,
         <div key={s.key} className="space-y-1.5">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="text-[13px] font-semibold text-foreground">{s.title}</p>
+              <p className="text-[13px] font-semibold text-foreground">
+                {s.title}
+              </p>
               <p className="text-xs text-muted-foreground">{s.desc}</p>
             </div>
           </div>
           <div className="rounded-lg border border-border overflow-hidden">
             <div className="flex items-center justify-between px-3 py-2 bg-muted/60 border-b border-border">
-              <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">{s.lang}</span>
+              <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
+                {s.lang}
+              </span>
               <button
                 onClick={() => copy(s.key, s.code)}
                 className={cn(
                   "text-[11px] font-medium transition-colors",
-                  copied === s.key ? "text-green-600 dark:text-green-400" : "text-muted-foreground hover:text-foreground",
+                  copied === s.key
+                    ? "text-green-600 dark:text-green-400"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 {copied === s.key ? "Copied ✓" : "Copy"}
@@ -1362,24 +2237,63 @@ window.clarity.page(window.location.href);`,
       {/* API reference */}
       <div className="rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 bg-muted/40 border-b border-border">
-          <p className="text-[13px] font-semibold text-foreground">API reference</p>
-          <p className="text-xs text-muted-foreground mt-0.5">All endpoints accept JSON with <code className="font-mono bg-background border border-border rounded px-1 text-[11px]">X-API-Key</code> header.</p>
+          <p className="text-[13px] font-semibold text-foreground">
+            API reference
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            All endpoints accept JSON with{" "}
+            <code className="font-mono bg-background border border-border rounded px-1 text-[11px]">
+              X-API-Key
+            </code>{" "}
+            header.
+          </p>
         </div>
         <div className="divide-y divide-border">
           {[
-            { method: "POST", path: "/track/event",    desc: "Track a custom event" },
-            { method: "POST", path: "/track/pageview", desc: "Track a page view" },
-            { method: "POST", path: "/track/error",    desc: "Capture a JS error" },
-            { method: "POST", path: "/session/start",  desc: "Start a session recording" },
-            { method: "POST", path: "/session/frames", desc: "Flush recording frames" },
-            { method: "GET",  path: "/health",         desc: "Health check (no auth)" },
+            {
+              method: "POST",
+              path: "/track/event",
+              desc: "Track a custom event",
+            },
+            {
+              method: "POST",
+              path: "/track/pageview",
+              desc: "Track a page view",
+            },
+            {
+              method: "POST",
+              path: "/track/error",
+              desc: "Capture a JS error",
+            },
+            {
+              method: "POST",
+              path: "/session/start",
+              desc: "Start a session recording",
+            },
+            {
+              method: "POST",
+              path: "/session/frames",
+              desc: "Flush recording frames",
+            },
+            { method: "GET", path: "/health", desc: "Health check (no auth)" },
           ].map((ep) => (
             <div key={ep.path} className="flex items-center gap-3 px-4 py-2.5">
-              <span className={cn("shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold font-mono uppercase", ep.method === "GET" ? "bg-green-500/10 text-green-700 dark:text-green-400" : "bg-primary/10 text-primary")}>
+              <span
+                className={cn(
+                  "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold font-mono uppercase",
+                  ep.method === "GET"
+                    ? "bg-green-500/10 text-green-700 dark:text-green-400"
+                    : "bg-primary/10 text-primary",
+                )}
+              >
                 {ep.method}
               </span>
-              <code className="text-xs font-mono text-foreground">{ep.path}</code>
-              <span className="text-xs text-muted-foreground ml-auto hidden sm:block">{ep.desc}</span>
+              <code className="text-xs font-mono text-foreground">
+                {ep.path}
+              </code>
+              <span className="text-xs text-muted-foreground ml-auto hidden sm:block">
+                {ep.desc}
+              </span>
             </div>
           ))}
         </div>
@@ -1390,17 +2304,24 @@ window.clarity.page(window.location.href);`,
 
 // ─── IngestHint (inline curl helper for empty states) ─────────────────────────
 
-function IngestHint({ type, projectId }: { type: "event" | "pageview"; projectId: string }) {
+function IngestHint({
+  type,
+  projectId,
+}: {
+  type: "event" | "pageview";
+  projectId: string;
+}) {
   const endpoint = type === "event" ? "/track/event" : "/track/pageview";
-  const body = type === "event"
-    ? `{"project_id":"${projectId}","name":"button_click","url":"/"}`
-    : `{"project_id":"${projectId}","url":"https://yoursite.com/"}`;
+  const body =
+    type === "event"
+      ? `{"project_id":"${projectId}","name":"button_click","url":"/"}`
+      : `{"project_id":"${projectId}","url":"https://yoursite.com/"}`;
 
   return (
     <div className="mt-4 space-y-2 text-left max-w-xl">
       <p className="text-xs text-muted-foreground">Try it with curl:</p>
       <pre className="overflow-x-auto rounded-md bg-zinc-950 dark:bg-black p-3 text-[11px] text-zinc-300 font-mono leading-relaxed">
-{`curl -X POST http://localhost:4000${endpoint} \\
+        {`curl -X POST http://localhost:4000${endpoint} \\
   -H "Content-Type: application/json" \\
   -H "X-API-Key: <your-api-key>" \\
   -d '${body}'`}

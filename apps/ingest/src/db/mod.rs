@@ -8,15 +8,21 @@ use std::time::Duration;
 pub async fn create_pool(database_url: &str) -> PgPool {
     let connect_options = PgConnectOptions::from_str(database_url)
         .expect("Invalid PostgreSQL DATABASE_URL")
+        // Neon pooler doesn't support named prepared statements
         .statement_cache_capacity(0);
 
     PgPoolOptions::new()
-        .max_connections(10)
-        .idle_timeout(Duration::from_secs(30)) 
-        .acquire_timeout(Duration::from_secs(5))
+        // Neon serverless: keep the pool small so we don't exhaust connection
+        // limits and don't race on a cold-start compute wake-up.
+        // shortcut: single connection, raise to 5-10 on a dedicated Neon plan
+        .max_connections(3)
+        // Neon computes can take 3-5 s to wake from idle; 30 s is safe
+        .acquire_timeout(Duration::from_secs(30))
+        // Keep connection alive between requests; Neon bills per active compute
+        // second so idle is free — do NOT set a short idle_timeout here
         .connect_with(connect_options)
         .await
-        .expect("Failed to connect to PostgreSQL database")
+        .expect("Failed to connect to Neon PostgreSQL — check DATABASE_URL and network")
 }
 
 pub async fn validate_api_key(
@@ -72,10 +78,11 @@ pub async fn project_exists(
     pool: &PgPool,
     project_id: &str,
 ) -> Result<(), crate::errors::AppError> {
-    let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM project WHERE id = $1)")
-        .bind(project_id)
-        .fetch_one(pool)
-        .await?;
+    let exists: bool =
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM project WHERE id = $1)")
+            .bind(project_id)
+            .fetch_one(pool)
+            .await?;
 
     if !exists {
         return Err(crate::errors::AppError::NotFound(format!(

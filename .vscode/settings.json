@@ -1,9 +1,58 @@
 {
+  "rust-analyzer.linkedProjects": [
+    "./Cargo.toml"
+  ],
   "rust-analyzer.check.command": "clippy",
-  "rust-analyzer.linkedProjects": ["./Cargo.toml"],
-  "typescript.tsdk": "node_modules/typescript/lib",
+  "rust-analyzer.check.extraArgs": [
+    "--",
+    "-D",
+    "warnings"
+  ],
+  "rust-analyzer.cargo.allTargets": true,
+  "rust-analyzer.procMacro.enable": true,
+  "typescript.tsdk": "apps/web/node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "files.associations": {
+    "*.css": "tailwindcss"
+  },
   "files.exclude": {
-    "**/target": false,
-    "**/.turbo": true
-  }
+    "**/node_modules": true,
+    "**/target": true,
+    "**/.turbo": true,
+    "**/.next": true,
+    "**/dist": true,
+    "apps/web/lib/generated": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/target": true,
+    "**/.next": true,
+    "**/dist": true,
+    "Cargo.lock": true,
+    "**/bun.lock": true,
+    "**/pnpm-lock.yaml": true
+  },
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "tailwindCSS.experimental.classRegex": [
+    [
+      "cn\\(([^)]*)\\)",
+      "(?:'|\"|`)([^']*)(?:'|\"|`)"
+    ]
+  ],
+  "terminal.integrated.cwd": "${workspaceFolder}"
 }
