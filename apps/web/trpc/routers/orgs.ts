@@ -542,13 +542,15 @@ export const OrgRouter = createTRPCRouter({
   setTeamProjectAccess: protectedProcedure
     .input(
       z.object({
-        teamId:    z.string(),
+        teamId: z.string(),
         projectId: z.string(),
-        access:    z.enum(["VIEWER", "MEMBER", "ADMIN"]).nullable(),
+        access: z.enum(["VIEWER", "MEMBER", "ADMIN"]).nullable(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const team = await prisma.team.findUnique({ where: { id: input.teamId } });
+      const team = await prisma.team.findUnique({
+        where: { id: input.teamId },
+      });
       if (!team) throw new TRPCError({ code: "NOT_FOUND" });
       await requireOrgMember(ctx.user.id, team.organizationId, "ADMIN");
 
@@ -560,8 +562,17 @@ export const OrgRouter = createTRPCRouter({
       }
 
       return prisma.teamProjectAccess.upsert({
-        where: { teamId_projectId: { teamId: input.teamId, projectId: input.projectId } },
-        create: { teamId: input.teamId, projectId: input.projectId, access: input.access },
+        where: {
+          teamId_projectId: {
+            teamId: input.teamId,
+            projectId: input.projectId,
+          },
+        },
+        create: {
+          teamId: input.teamId,
+          projectId: input.projectId,
+          access: input.access,
+        },
         update: { access: input.access },
       });
     }),
@@ -570,7 +581,9 @@ export const OrgRouter = createTRPCRouter({
   listTeamProjectAccess: protectedProcedure
     .input(z.object({ teamId: z.string() }))
     .query(async ({ ctx, input }) => {
-      const team = await prisma.team.findUnique({ where: { id: input.teamId } });
+      const team = await prisma.team.findUnique({
+        where: { id: input.teamId },
+      });
       if (!team) throw new TRPCError({ code: "NOT_FOUND" });
       await requireOrgMember(ctx.user.id, team.organizationId);
       return prisma.teamProjectAccess.findMany({

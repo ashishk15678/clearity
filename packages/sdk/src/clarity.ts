@@ -1,4 +1,3 @@
-
 ```
   Clarity Analytics SDK  
   Captures: page views (time-on-page = visible time, scroll depth), custom
@@ -9,7 +8,7 @@
     src="https://${window.location.hostname}/clarity.js"
     data-project-id="YOUR_PROJECT_ID"
     data-api-key="clr_live_…"
-    data-ingest="http://localhost:4000"
+    data-ingest="..."
     data-sample-rate="1"        (optional, 0-1: share of sessions recorded)
     data-mask-text="false"      (optional, "true" masks ALL page text in replays)
   ></script>
@@ -21,8 +20,7 @@
   API: clarity.track(name, props) · clarity.identify(id, traits)
        clarity.optOut() · clarity.optIn() · clarity.flush()
  
-```
-(function (window, document) {
+```(function (window, document) {
   "use strict";
 
   if (window.__clarityLoaded) return;
@@ -91,7 +89,7 @@
   );
 
   var lastTouch = 0;
- 
+
   var RECORD = session.sampled;
 
   // ── Network ─────────────────────────────────────────────────────────────────
@@ -100,13 +98,11 @@
 
   var optedOut = false;
 
-
   // ── Breadcrumbs (ring buffer) ───────────────────────────────────────────────
 
   var MAX_BREADCRUMBS = 30;
   var breadcrumbs = [];
 
-  
   ["log", "warn", "error", "info"].forEach(function (method) {
     if (typeof console[method] !== "function") return;
     var orig = console[method];
@@ -156,7 +152,6 @@
   var maxScrollPct = 0;
   var scrollQueued = false;
   var lastScrollFrame = 0;
-
 
   document.addEventListener(
     "scroll",
@@ -464,7 +459,6 @@
     // ── DOM helpers ────────────────────────────────────────────────────────────
     var PAD = 10; // px padding around spotlight
 
-
     var CARD_W = 320;
     var CARD_H = 160; // estimated
 
@@ -495,7 +489,8 @@
       } else if (pl === "right") {
         cx = r.left + r.width + PAD + GAP;
         cy = r.top + r.height / 2 - CARD_H / 2;
-      } else { // left
+      } else {
+        // left
         cx = r.left - PAD - GAP - CARD_W;
         cy = r.top + r.height / 2 - CARD_H / 2;
       }
@@ -513,7 +508,12 @@
       var storageKey = PREFIX + (opts.storageKey || "default");
 
       if (!opts.forceShow) {
-        try { if (localStorage.getItem(storageKey) === "1") { if (opts.onComplete) opts.onComplete(); return; } } catch (_) {}
+        try {
+          if (localStorage.getItem(storageKey) === "1") {
+            if (opts.onComplete) opts.onComplete();
+            return;
+          }
+        } catch (_) {}
       }
 
       if (!steps || !steps.length) return;
@@ -526,7 +526,8 @@
       overlay = el("div", "__clr-overlay");
 
       dimEl = el("div", "__clr-dim");
-      dimEl.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:2147483641;";
+      dimEl.style.cssText =
+        "position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:2147483641;";
       overlay.appendChild(dimEl);
 
       spotlight = el("div", "__clr-spotlight");
@@ -542,86 +543,136 @@
 
       function getTarget(step) {
         if (!step.target) return null;
-        try { return document.querySelector(step.target); } catch (_) { return null; }
+        try {
+          return document.querySelector(step.target);
+        } catch (_) {
+          return null;
+        }
       }
 
       function renderStep() {
-        var step    = steps[idx];
-        var target  = getTarget(step);
-        var vpW     = window.innerWidth;
-        var vpH     = window.innerHeight;
+        var step = steps[idx];
+        var target = getTarget(step);
+        var vpW = window.innerWidth;
+        var vpH = window.innerHeight;
 
         // Scroll target into view
         if (target) {
-          target.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+          target.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+            inline: "center",
+          });
         }
 
         // Re-measure after scroll (small delay)
-        setTimeout(function () {
-          var r = rect(target);
+        setTimeout(
+          function () {
+            var r = rect(target);
 
-          // Spotlight
-          var ss = spotlightStyle(r);
-          Object.assign(spotlight.style, ss);
-          spotlight.style.transition = "all .3s cubic-bezier(.4,0,.2,1)";
+            // Spotlight
+            var ss = spotlightStyle(r);
+            Object.assign(spotlight.style, ss);
+            spotlight.style.transition = "all .3s cubic-bezier(.4,0,.2,1)";
 
-          if (!r) {
-            // No target → no spotlight, full dim
-            spotlight.style.boxShadow = "none";
-            dimEl.style.opacity = "1";
-          } else {
-            spotlight.style.boxShadow = "0 0 0 9999px rgba(0,0,0,0.55)";
-            dimEl.style.opacity = "0"; // spotlight handles the dim
-          }
+            if (!r) {
+              // No target → no spotlight, full dim
+              spotlight.style.boxShadow = "none";
+              dimEl.style.opacity = "1";
+            } else {
+              spotlight.style.boxShadow = "0 0 0 9999px rgba(0,0,0,0.55)";
+              dimEl.style.opacity = "0"; // spotlight handles the dim
+            }
 
-          // Card position
-          var pos = cardPosition(r, step.placement, vpW, vpH);
-          Object.assign(card.style, pos);
+            // Card position
+            var pos = cardPosition(r, step.placement, vpW, vpH);
+            Object.assign(card.style, pos);
 
-          // Card content
-          var stepNum   = idx + 1;
-          var stepTotal = steps.length;
-          var isLast    = idx === stepTotal - 1;
-          var isFirst   = idx === 0;
+            // Card content
+            var stepNum = idx + 1;
+            var stepTotal = steps.length;
+            var isLast = idx === stepTotal - 1;
+            var isFirst = idx === 0;
 
-          var dots = steps.map(function (_, i) {
-            return '<span class="__clr-dot' + (i === idx ? " __clr-dot-active" : "") + '"></span>';
-          }).join("");
+            var dots = steps
+              .map(function (_, i) {
+                return (
+                  '<span class="__clr-dot' +
+                  (i === idx ? " __clr-dot-active" : "") +
+                  '"></span>'
+                );
+              })
+              .join("");
 
-          card.innerHTML =
-            '<div class="__clr-badge"><span class="__clr-badge-dot"></span>Step ' + stepNum + ' of ' + stepTotal + '</div>' +
-            '<h3>' + (step.title || "") + '</h3>' +
-            '<p>'  + (step.body  || "") + '</p>' +
-            '<div class="__clr-step-dots">' + dots + '</div>' +
-            '<div class="__clr-btn-row">' +
-              (!isFirst ? '<button class="__clr-btn __clr-btn-secondary" id="__clr-back">← Back</button>' : '') +
-              '<button class="__clr-btn __clr-btn-primary" id="__clr-next">' + (isLast ? "Done ✓" : "Next →") + '</button>' +
+            card.innerHTML =
+              '<div class="__clr-badge"><span class="__clr-badge-dot"></span>Step ' +
+              stepNum +
+              " of " +
+              stepTotal +
+              "</div>" +
+              "<h3>" +
+              (step.title || "") +
+              "</h3>" +
+              "<p>" +
+              (step.body || "") +
+              "</p>" +
+              '<div class="__clr-step-dots">' +
+              dots +
+              "</div>" +
+              '<div class="__clr-btn-row">' +
+              (!isFirst
+                ? '<button class="__clr-btn __clr-btn-secondary" id="__clr-back">← Back</button>'
+                : "") +
+              '<button class="__clr-btn __clr-btn-primary" id="__clr-next">' +
+              (isLast ? "Done ✓" : "Next →") +
+              "</button>" +
               '<button class="__clr-skip" id="__clr-skip">Skip tour</button>' +
-            '</div>';
+              "</div>";
 
-          // Wire buttons
-          var nextBtn = document.getElementById("__clr-next");
-          var backBtn = document.getElementById("__clr-back");
-          var skipBtn = document.getElementById("__clr-skip");
+            // Wire buttons
+            var nextBtn = document.getElementById("__clr-next");
+            var backBtn = document.getElementById("__clr-back");
+            var skipBtn = document.getElementById("__clr-skip");
 
-          if (nextBtn) nextBtn.onclick = function () {
-            if (isLast) { finish(false); } else { idx++; renderStep(); }
-          };
-          if (backBtn) backBtn.onclick = function () { idx--; renderStep(); };
-          if (skipBtn) skipBtn.onclick = function () { finish(true); };
-        }, target ? 300 : 0);
+            if (nextBtn)
+              nextBtn.onclick = function () {
+                if (isLast) {
+                  finish(false);
+                } else {
+                  idx++;
+                  renderStep();
+                }
+              };
+            if (backBtn)
+              backBtn.onclick = function () {
+                idx--;
+                renderStep();
+              };
+            if (skipBtn)
+              skipBtn.onclick = function () {
+                finish(true);
+              };
+          },
+          target ? 300 : 0,
+        );
       }
 
       function finish(skipped) {
-        if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
-        try { localStorage.setItem(storageKey, "1"); } catch (_) {}
-        if (skipped && opts.onSkip)     opts.onSkip();
+        if (overlay && overlay.parentNode)
+          overlay.parentNode.removeChild(overlay);
+        try {
+          localStorage.setItem(storageKey, "1");
+        } catch (_) {}
+        if (skipped && opts.onSkip) opts.onSkip();
         if (!skipped && opts.onComplete) opts.onComplete();
       }
 
       // Escape key exits
       function onKey(e) {
-        if (e.key === "Escape") { finish(true); document.removeEventListener("keydown", onKey); }
+        if (e.key === "Escape") {
+          finish(true);
+          document.removeEventListener("keydown", onKey);
+        }
       }
       document.addEventListener("keydown", onKey);
 
@@ -630,5 +681,4 @@
 
     return run;
   })();
-
 })(window, document);

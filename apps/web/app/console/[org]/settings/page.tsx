@@ -12,7 +12,8 @@ export default async function SettingsPage() {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return null;
   const user = session.user;
-
+  const ingest_url =
+    process.env.NEXT_PUBLIC_INGEST_URL ?? "http://localhost:4000";
   return (
     <div className="flex flex-col">
       <Topbar title="Settings" />
@@ -51,19 +52,16 @@ export default async function SettingsPage() {
             </p>
             <div className="grid gap-2 text-sm">
               {[
-                ["Track Event", "POST http://localhost:4000/track/event"],
-                [
-                  "Track Page View",
-                  "POST http://localhost:4000/track/pageview",
-                ],
-                ["Health", "GET http://localhost:4000/health"],
+                ["Track Event", `POST ${ingest_url}/track/event`],
+                ["Track Page View", `POST ${ingest_url}/track/pageview`],
+                ["Health", `GET ${ingest_url}/health`],
                 [
                   "Event Report",
-                  "GET http://localhost:4000/reports/events?project_id=…",
+                  `GET ${ingest_url}/reports/events?project_id=…`,
                 ],
                 [
                   "Pageview Report",
-                  "GET http://localhost:4000/reports/pageviews?project_id=…",
+                  `GET ${ingest_url}/reports/pageviews?project_id=…`,
                 ],
               ].map(([label, url]) => (
                 <div key={label} className="flex flex-col gap-0.5">

@@ -28,13 +28,16 @@ type NotifType =
   | string;
 
 const TYPE_ICON: Record<string, { icon: string; color: string }> = {
-  invite_received:  { icon: "✉️", color: "bg-blue-50 dark:bg-blue-900/20" },
-  invite_accepted:  { icon: "✅", color: "bg-emerald-50 dark:bg-emerald-900/20" },
-  member_joined:    { icon: "👋", color: "bg-indigo-50 dark:bg-indigo-900/20" },
-  error_spike:      { icon: "🔴", color: "bg-red-50 dark:bg-red-900/20" },
-  project_created:  { icon: "📁", color: "bg-amber-50 dark:bg-amber-900/20" },
-  role_changed:     { icon: "🔑", color: "bg-purple-50 dark:bg-purple-900/20" },
-  _default:         { icon: "🔔", color: "bg-muted" },
+  invite_received: { icon: "✉️", color: "bg-blue-50 dark:bg-blue-900/20" },
+  invite_accepted: {
+    icon: "✅",
+    color: "bg-emerald-50 dark:bg-emerald-900/20",
+  },
+  member_joined: { icon: "👋", color: "bg-indigo-50 dark:bg-indigo-900/20" },
+  error_spike: { icon: "🔴", color: "bg-red-50 dark:bg-red-900/20" },
+  project_created: { icon: "📁", color: "bg-amber-50 dark:bg-amber-900/20" },
+  role_changed: { icon: "🔑", color: "bg-purple-50 dark:bg-purple-900/20" },
+  _default: { icon: "🔔", color: "bg-muted" },
 };
 
 function getStyle(type: NotifType) {
@@ -44,7 +47,7 @@ function getStyle(type: NotifType) {
 function reltime(date: Date | string) {
   const d = typeof date === "string" ? new Date(date) : date;
   const s = Math.floor((Date.now() - d.getTime()) / 1000);
-  if (s < 60)  return `${s}s ago`;
+  if (s < 60) return `${s}s ago`;
   if (s < 3600) return `${Math.floor(s / 60)}m ago`;
   if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
   return `${Math.floor(s / 86400)}d ago`;
@@ -54,9 +57,9 @@ function reltime(date: Date | string) {
 
 export function NotificationBell() {
   const trpc = useTRPC();
-  const qc   = useQueryClient();
+  const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const ref  = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
 
   const { data: count = 0 } = useQuery({
     ...trpc.notifications.unreadCount.queryOptions(),
@@ -72,7 +75,9 @@ export function NotificationBell() {
     trpc.notifications.markRead.mutationOptions({
       onSuccess: () => {
         qc.invalidateQueries({ queryKey: trpc.notifications.list.queryKey() });
-        qc.invalidateQueries({ queryKey: trpc.notifications.unreadCount.queryKey() });
+        qc.invalidateQueries({
+          queryKey: trpc.notifications.unreadCount.queryKey(),
+        });
       },
     }),
   );
@@ -81,7 +86,9 @@ export function NotificationBell() {
     trpc.notifications.markAllRead.mutationOptions({
       onSuccess: () => {
         qc.invalidateQueries({ queryKey: trpc.notifications.list.queryKey() });
-        qc.invalidateQueries({ queryKey: trpc.notifications.unreadCount.queryKey() });
+        qc.invalidateQueries({
+          queryKey: trpc.notifications.unreadCount.queryKey(),
+        });
       },
     }),
   );
@@ -90,7 +97,8 @@ export function NotificationBell() {
   useEffect(() => {
     if (!open) return;
     function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
     }
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -99,7 +107,9 @@ export function NotificationBell() {
   // Close on Escape
   useEffect(() => {
     if (!open) return;
-    function handler(e: KeyboardEvent) { if (e.key === "Escape") setOpen(false); }
+    function handler(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [open]);
@@ -147,7 +157,9 @@ export function NotificationBell() {
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <h2 className="text-sm font-semibold text-foreground">Notifications</h2>
+            <h2 className="text-sm font-semibold text-foreground">
+              Notifications
+            </h2>
             {count > 0 && (
               <button
                 onClick={() => markAll.mutate()}
@@ -164,7 +176,10 @@ export function NotificationBell() {
             {isPending ? (
               <div className="space-y-1 p-2">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex gap-3 rounded-lg p-3 animate-pulse">
+                  <div
+                    key={i}
+                    className="flex gap-3 rounded-lg p-3 animate-pulse"
+                  >
                     <div className="h-8 w-8 rounded-lg bg-muted shrink-0" />
                     <div className="flex-1 space-y-2">
                       <div className="h-3 w-3/4 rounded bg-muted" />
@@ -178,7 +193,9 @@ export function NotificationBell() {
                 <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-muted">
                   <BellIcon className="h-5 w-5 text-muted-foreground" />
                 </div>
-                <p className="text-sm font-medium text-foreground">All caught up</p>
+                <p className="text-sm font-medium text-foreground">
+                  All caught up
+                </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   New notifications will appear here.
                 </p>
@@ -216,7 +233,9 @@ export function NotificationBell() {
                           <p
                             className={cn(
                               "text-[13px] leading-snug truncate",
-                              n.read ? "text-muted-foreground font-normal" : "text-foreground font-medium",
+                              n.read
+                                ? "text-muted-foreground font-normal"
+                                : "text-foreground font-medium",
                             )}
                           >
                             {n.title}
@@ -237,7 +256,11 @@ export function NotificationBell() {
                   );
 
                   return n.link ? (
-                    <Link key={n.id} href={n.link} onClick={() => setOpen(false)}>
+                    <Link
+                      key={n.id}
+                      href={n.link}
+                      onClick={() => setOpen(false)}
+                    >
                       {inner}
                     </Link>
                   ) : (
@@ -252,7 +275,8 @@ export function NotificationBell() {
           {notifs.length > 0 && (
             <div className="border-t border-border px-4 py-2.5 text-center">
               <span className="text-xs text-muted-foreground">
-                Showing {notifs.length} notification{notifs.length !== 1 ? "s" : ""}
+                Showing {notifs.length} notification
+                {notifs.length !== 1 ? "s" : ""}
               </span>
             </div>
           )}

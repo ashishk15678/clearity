@@ -47,12 +47,13 @@ export function OrgCreateModal() {
   return (
     <div
       className="flex min-h-screen w-full items-center justify-center p-4 bg-primary/90"
-      style={{ backgroundImage: "radial-gradient(circle at 30% 50%, hsl(220 80% 25%), hsl(220 60% 15%))" }}
+      style={{
+        backgroundImage:
+          "radial-gradient(circle at 30% 50%, hsl(220 80% 25%), hsl(220 60% 15%))",
+      }}
     >
-      
       {/* Actual Modal Card */}
       <div className="relative z-10 w-full max-w-md rounded-2xl bg-card border border-border shadow-2xl p-8 space-y-6">
-        
         {/* Icon + heading */}
         <div className="flex flex-col items-center text-center gap-3">
           <div>
@@ -60,8 +61,8 @@ export function OrgCreateModal() {
               Create your organization
             </h1>
             <p className="mt-1 text-sm text-muted-foreground max-w-xs">
-              An organization is your workspace for projects, analytics, and your
-              team.
+              An organization is your workspace for projects, analytics, and
+              your team.
             </p>
           </div>
         </div>

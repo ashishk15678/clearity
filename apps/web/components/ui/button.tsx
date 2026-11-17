@@ -9,8 +9,9 @@ import { cn } from "@/lib/cn";
 //
 // Never pass raw Tailwind colour classes to override — use variant + size only.
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "outline";
-export type ButtonSize    = "sm" | "md" | "lg" | "icon";
+export type ButtonVariant =
+  "primary" | "secondary" | "ghost" | "danger" | "outline";
+export type ButtonSize = "sm" | "md" | "lg" | "icon";
 
 // Base — shared across all variants
 const BASE =
@@ -61,21 +62,21 @@ const VARIANTS: Record<ButtonVariant, string> = {
 };
 
 const SIZES: Record<ButtonSize, string> = {
-  icon: "h-8 w-8 p-0 text-sm",         // square icon button
-  sm:   "h-7 px-2.5 text-xs",          // compact — table actions, badges
-  md:   "h-8 px-3.5 text-sm",          // default
-  lg:   "h-9 px-5 text-sm font-semibold", // primary CTA
+  icon: "h-8 w-8 p-0 text-sm", // square icon button
+  sm: "h-7 px-2.5 text-xs", // compact — table actions, badges
+  md: "h-8 px-3.5 text-sm", // default
+  lg: "h-9 px-5 text-sm font-semibold", // primary CTA
 };
 
 export function Button({
   children,
   variant = "secondary",
-  size    = "md",
+  size = "md",
   className,
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant;
-  size?:    ButtonSize;
+  size?: ButtonSize;
 }) {
   return (
     <button

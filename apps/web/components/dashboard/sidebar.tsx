@@ -20,7 +20,15 @@ function ClarityLogo() {
   );
 }
 
-function Icon({ d, d2, evenOdd }: { d: string; d2?: string; evenOdd?: boolean }) {
+function Icon({
+  d,
+  d2,
+  evenOdd,
+}: {
+  d: string;
+  d2?: string;
+  evenOdd?: boolean;
+}) {
   return (
     <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
       {d2 ? (
@@ -118,11 +126,13 @@ export function Sidebar({ orgSlug }: { orgSlug: string }) {
   const isActive = (href: string, exact = false) =>
     exact
       ? pathname === href
-      : pathname === href || pathname.startsWith(href + "/") || pathname.startsWith(href + "?");
-   const params = useParams<{ slug?: string }>()
-  
-  const currentProject = params?.slug
-  const isInsideProject = Boolean(currentProject)
+      : pathname === href ||
+        pathname.startsWith(href + "/") ||
+        pathname.startsWith(href + "?");
+  const params = useParams<{ slug?: string }>();
+
+  const currentProject = params?.slug;
+  const isInsideProject = Boolean(currentProject);
   return (
     <aside className="flex h-screen w-[210px] shrink-0 flex-col border-r border-border bg-sidebar">
       {/* ── Logo / brand ─────────────────────────────────────────────────── */}
@@ -210,7 +220,9 @@ function NavItem({
       <span
         className={cn(
           "transition-colors",
-          active ? "text-foreground" : "text-muted-foreground group-hover:text-foreground",
+          active
+            ? "text-foreground"
+            : "text-muted-foreground group-hover:text-foreground",
         )}
       >
         {icon}

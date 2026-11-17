@@ -9,7 +9,7 @@ type Placement = "auto" | "top" | "bottom" | "left" | "right" | "center";
 
 interface TourStep {
   id: string;
-  target: string;      // CSS selector, empty = center modal
+  target: string; // CSS selector, empty = center modal
   title: string;
   body: string;
   placement: Placement;
@@ -63,20 +63,20 @@ function buildSnippet(tour: Tour) {
 }
 
 const PLACEMENTS: { value: Placement; label: string }[] = [
-  { value: "auto",   label: "Auto" },
+  { value: "auto", label: "Auto" },
   { value: "bottom", label: "Below" },
-  { value: "top",    label: "Above" },
-  { value: "right",  label: "Right" },
-  { value: "left",   label: "Left" },
+  { value: "top", label: "Above" },
+  { value: "right", label: "Right" },
+  { value: "left", label: "Left" },
   { value: "center", label: "Center (modal)" },
 ];
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function TourBuilder({ orgSlug }: { orgSlug: string }) {
-  const [tours, setTours]         = useState<Tour[]>([blankTour()]);
-  const [activeId, setActiveId]   = useState<string>(tours[0]!.id);
-  const [copied, setCopied]       = useState(false);
+  const [tours, setTours] = useState<Tour[]>([blankTour()]);
+  const [activeId, setActiveId] = useState<string>(tours[0]!.id);
+  const [copied, setCopied] = useState(false);
 
   const activeTour = tours.find((t) => t.id === activeId) ?? tours[0]!;
 
@@ -150,13 +150,19 @@ export function TourBuilder({ orgSlug }: { orgSlug: string }) {
       {/* ── Left: tour list ─────────────────────────────────────────────── */}
       <aside className="w-56 shrink-0 border-r border-zinc-200 dark:border-zinc-800 flex flex-col bg-zinc-50 dark:bg-zinc-900/50">
         <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-zinc-800">
-          <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Tours</span>
+          <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+            Tours
+          </span>
           <button
             onClick={addTour}
             className="flex h-6 w-6 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
             title="New tour"
           >
-            <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
+            <svg
+              viewBox="0 0 16 16"
+              fill="currentColor"
+              className="h-3.5 w-3.5"
+            >
               <path d="M8 2a.75.75 0 01.75.75v4.5h4.5a.75.75 0 010 1.5h-4.5v4.5a.75.75 0 01-1.5 0v-4.5h-4.5a.75.75 0 010-1.5h4.5v-4.5A.75.75 0 018 2z" />
             </svg>
           </button>
@@ -203,9 +209,28 @@ export function TourBuilder({ orgSlug }: { orgSlug: string }) {
               )}
             >
               {copied ? (
-                <><svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5"><path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"/></svg>Copied!</>
+                <>
+                  <svg
+                    viewBox="0 0 16 16"
+                    fill="currentColor"
+                    className="h-3.5 w-3.5"
+                  >
+                    <path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z" />
+                  </svg>
+                  Copied!
+                </>
               ) : (
-                <><svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5"><path d="M0 6.75A.75.75 0 01.75 6h1.5a.75.75 0 010 1.5H.75A.75.75 0 010 6.75zM0 3.25A.75.75 0 01.75 2.5h8.5a.75.75 0 010 1.5H.75A.75.75 0 010 3.25zm0 7A.75.75 0 01.75 9.5h4.5a.75.75 0 010 1.5H.75A.75.75 0 010 10.25z"/><path d="M13 7.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm-5 1.5a5 5 0 1110 0 5 5 0 01-10 0z"/></svg>Copy snippet</>
+                <>
+                  <svg
+                    viewBox="0 0 16 16"
+                    fill="currentColor"
+                    className="h-3.5 w-3.5"
+                  >
+                    <path d="M0 6.75A.75.75 0 01.75 6h1.5a.75.75 0 010 1.5H.75A.75.75 0 010 6.75zM0 3.25A.75.75 0 01.75 2.5h8.5a.75.75 0 010 1.5H.75A.75.75 0 010 3.25zm0 7A.75.75 0 01.75 9.5h4.5a.75.75 0 010 1.5H.75A.75.75 0 010 10.25z" />
+                    <path d="M13 7.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm-5 1.5a5 5 0 1110 0 5 5 0 01-10 0z" />
+                  </svg>
+                  Copy snippet
+                </>
               )}
             </button>
             <button
@@ -247,22 +272,37 @@ export function TourBuilder({ orgSlug }: { orgSlug: string }) {
       {/* ── Right: preview ──────────────────────────────────────────────── */}
       <aside className="w-80 shrink-0 border-l border-zinc-200 dark:border-zinc-800 flex flex-col bg-zinc-50 dark:bg-zinc-900/50 overflow-hidden">
         <div className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800">
-          <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Preview</span>
-          <p className="text-[11px] text-zinc-400 mt-0.5">Paste the snippet into your page to see it live.</p>
+          <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+            Preview
+          </span>
+          <p className="text-[11px] text-zinc-400 mt-0.5">
+            Paste the snippet into your page to see it live.
+          </p>
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {/* Step preview cards */}
           {activeTour.steps.map((step, i) => (
-            <div key={step.id} className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
+            <div
+              key={step.id}
+              className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4"
+            >
               <div className="flex items-center gap-1.5 mb-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
-                <span className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wider">Step {i + 1}</span>
+                <span className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wider">
+                  Step {i + 1}
+                </span>
               </div>
               <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-1">
-                {step.title || <span className="text-zinc-300 font-normal italic">No title</span>}
+                {step.title || (
+                  <span className="text-zinc-300 font-normal italic">
+                    No title
+                  </span>
+                )}
               </p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                {step.body || <span className="italic text-zinc-300">No description</span>}
+                {step.body || (
+                  <span className="italic text-zinc-300">No description</span>
+                )}
               </p>
               {step.target && (
                 <code className="mt-2 block text-[10px] font-mono text-zinc-400 bg-zinc-100 dark:bg-zinc-800 rounded px-2 py-1 truncate">
@@ -275,7 +315,9 @@ export function TourBuilder({ orgSlug }: { orgSlug: string }) {
           {/* Code snippet */}
           <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
             <div className="flex items-center justify-between px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
-              <span className="text-[10px] font-mono font-semibold text-zinc-500">Embed snippet</span>
+              <span className="text-[10px] font-mono font-semibold text-zinc-500">
+                Embed snippet
+              </span>
               <button
                 onClick={copySnippet}
                 className="text-[10px] text-zinc-400 hover:text-indigo-500 transition-colors"
@@ -330,7 +372,13 @@ function StepCard({
             className="p-1 rounded text-zinc-400 hover:text-zinc-600 disabled:opacity-25 transition-colors"
             title="Move up"
           >
-            <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5"><path d="M8 2.5a.75.75 0 01.53.22l4.25 4.25a.75.75 0 01-1.06 1.06L8 4.31 4.28 8.03a.75.75 0 01-1.06-1.06L7.47 2.72A.75.75 0 018 2.5zm-4.22 7.22a.75.75 0 011.06 0L8 13.19l3.16-3.47a.75.75 0 111.1 1.02l-3.75 4.12a.75.75 0 01-1.1 0L3.78 10.78a.75.75 0 010-1.06z"/></svg>
+            <svg
+              viewBox="0 0 16 16"
+              fill="currentColor"
+              className="h-3.5 w-3.5"
+            >
+              <path d="M8 2.5a.75.75 0 01.53.22l4.25 4.25a.75.75 0 01-1.06 1.06L8 4.31 4.28 8.03a.75.75 0 01-1.06-1.06L7.47 2.72A.75.75 0 018 2.5zm-4.22 7.22a.75.75 0 011.06 0L8 13.19l3.16-3.47a.75.75 0 111.1 1.02l-3.75 4.12a.75.75 0 01-1.1 0L3.78 10.78a.75.75 0 010-1.06z" />
+            </svg>
           </button>
           <button
             onClick={() => onMove(1)}
@@ -338,14 +386,26 @@ function StepCard({
             className="p-1 rounded text-zinc-400 hover:text-zinc-600 disabled:opacity-25 transition-colors"
             title="Move down"
           >
-            <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5"><path d="M8 13.5a.75.75 0 01-.53-.22L3.22 9.03a.75.75 0 011.06-1.06L8 11.69l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25A.75.75 0 018 13.5zm-4.22-8.5a.75.75 0 011.06 0L8 8.47l3.16-3.47a.75.75 0 111.1 1.02L8.51 10.14a.75.75 0 01-1.1 0L3.78 6.06a.75.75 0 010-1.06z"/></svg>
+            <svg
+              viewBox="0 0 16 16"
+              fill="currentColor"
+              className="h-3.5 w-3.5"
+            >
+              <path d="M8 13.5a.75.75 0 01-.53-.22L3.22 9.03a.75.75 0 011.06-1.06L8 11.69l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25A.75.75 0 018 13.5zm-4.22-8.5a.75.75 0 011.06 0L8 8.47l3.16-3.47a.75.75 0 111.1 1.02L8.51 10.14a.75.75 0 01-1.1 0L3.78 6.06a.75.75 0 010-1.06z" />
+            </svg>
           </button>
           <button
             onClick={onDelete}
             className="p-1 rounded text-zinc-400 hover:text-red-500 transition-colors"
             title="Delete step"
           >
-            <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5"><path d="M11 1.75V3h2.25a.75.75 0 010 1.5H2.75a.75.75 0 010-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75zM4.496 6.675a.75.75 0 10-1.492.15l.66 6.6A1.75 1.75 0 005.41 15h5.18a1.75 1.75 0 001.746-1.577l.66-6.6a.75.75 0 00-1.492-.149l-.66 6.6a.25.25 0 01-.249.226H5.41a.25.25 0 01-.249-.226l-.665-6.6z"/></svg>
+            <svg
+              viewBox="0 0 16 16"
+              fill="currentColor"
+              className="h-3.5 w-3.5"
+            >
+              <path d="M11 1.75V3h2.25a.75.75 0 010 1.5H2.75a.75.75 0 010-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75zM4.496 6.675a.75.75 0 10-1.492.15l.66 6.6A1.75 1.75 0 005.41 15h5.18a1.75 1.75 0 001.746-1.577l.66-6.6a.75.75 0 00-1.492-.149l-.66 6.6a.25.25 0 01-.249.226H5.41a.25.25 0 01-.249-.226l-.665-6.6z" />
+            </svg>
           </button>
         </div>
       </div>
@@ -355,7 +415,10 @@ function StepCard({
         {/* Target selector */}
         <div className="space-y-1">
           <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
-            Target element <span className="text-zinc-300 font-normal normal-case">(CSS selector)</span>
+            Target element{" "}
+            <span className="text-zinc-300 font-normal normal-case">
+              (CSS selector)
+            </span>
           </label>
           <input
             value={step.target}
@@ -363,12 +426,16 @@ function StepCard({
             placeholder="#my-button, .nav-item, [data-tour='step1']"
             className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 text-xs font-mono text-zinc-700 dark:text-zinc-300 placeholder:text-zinc-300 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
           />
-          <p className="text-[10px] text-zinc-400">Leave empty to show a centered full-screen modal.</p>
+          <p className="text-[10px] text-zinc-400">
+            Leave empty to show a centered full-screen modal.
+          </p>
         </div>
 
         {/* Title */}
         <div className="space-y-1">
-          <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Title</label>
+          <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
+            Title
+          </label>
           <input
             value={step.title}
             onChange={(e) => onChange({ title: e.target.value })}
@@ -379,7 +446,9 @@ function StepCard({
 
         {/* Body */}
         <div className="space-y-1">
-          <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Description</label>
+          <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
+            Description
+          </label>
           <textarea
             value={step.body}
             onChange={(e) => onChange({ body: e.target.value })}
@@ -391,7 +460,9 @@ function StepCard({
 
         {/* Placement */}
         <div className="space-y-1">
-          <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Card placement</label>
+          <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
+            Card placement
+          </label>
           <div className="flex flex-wrap gap-1.5">
             {PLACEMENTS.map((p) => (
               <button

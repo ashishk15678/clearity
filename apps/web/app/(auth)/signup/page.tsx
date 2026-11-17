@@ -14,7 +14,12 @@ export default function SignupPage() {
         <div className="mb-8 flex flex-col items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-[0_0_0_4px_hsl(var(--primary)/0.12)]">
             <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none">
-              <path d="M4 10a6 6 0 0112 0" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+              <path
+                d="M4 10a6 6 0 0112 0"
+                stroke="white"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              />
               <circle cx="10" cy="10" r="2" fill="white" />
             </svg>
           </div>
@@ -34,7 +39,10 @@ export default function SignupPage() {
 
         <p className="mt-5 text-center text-sm text-muted-foreground">
           Already have an account?{" "}
-          <Link href="/login" className="font-medium text-foreground hover:underline underline-offset-2">
+          <Link
+            href="/login"
+            className="font-medium text-foreground hover:underline underline-offset-2"
+          >
             Sign in
           </Link>
         </p>

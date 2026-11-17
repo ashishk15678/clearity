@@ -1010,7 +1010,10 @@ function TeamPermissionsSection({
         <svg
           viewBox="0 0 16 16"
           fill="currentColor"
-          className={cn("h-3.5 w-3.5 transition-transform", open ? "rotate-180" : "")}
+          className={cn(
+            "h-3.5 w-3.5 transition-transform",
+            open ? "rotate-180" : "",
+          )}
         >
           <path d="M4.22 6.22a.75.75 0 011.06 0L8 8.94l2.72-2.72a.75.75 0 111.06 1.06l-3.25 3.25a.75.75 0 01-1.06 0L4.22 7.28a.75.75 0 010-1.06z" />
         </svg>
@@ -1056,7 +1059,9 @@ function TeamPermissionsPanel({
     trpc.org.setTeamProjectAccess.mutationOptions({
       onSuccess: () =>
         qc.invalidateQueries({
-          queryKey: trpc.org.listTeamProjectAccess.queryKey({ teamId: team.id }),
+          queryKey: trpc.org.listTeamProjectAccess.queryKey({
+            teamId: team.id,
+          }),
         }),
     }),
   );
@@ -1066,14 +1071,16 @@ function TeamPermissionsPanel({
   );
 
   const ACCESS_LEVELS = [
-    { value: null,     label: "No access" },
+    { value: null, label: "No access" },
     { value: "VIEWER", label: "Viewer — read-only" },
     { value: "MEMBER", label: "Member — can create" },
-    { value: "ADMIN",  label: "Admin — full control" },
+    { value: "ADMIN", label: "Admin — full control" },
   ] as const;
 
   if (isPending || !projects) {
-    return <div className="px-5 py-3 text-xs text-muted-foreground">Loading…</div>;
+    return (
+      <div className="px-5 py-3 text-xs text-muted-foreground">Loading…</div>
+    );
   }
 
   if (projects.length === 0) {
@@ -1089,10 +1096,17 @@ function TeamPermissionsPanel({
       {projects.map((p) => {
         const current = accessMap.get(p.id) ?? null;
         return (
-          <div key={p.id} className="flex items-center justify-between px-5 py-2.5 gap-4">
+          <div
+            key={p.id}
+            className="flex items-center justify-between px-5 py-2.5 gap-4"
+          >
             <div className="min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
-              <p className="text-xs text-muted-foreground font-mono">{p.slug}</p>
+              <p className="text-sm font-medium text-foreground truncate">
+                {p.name}
+              </p>
+              <p className="text-xs text-muted-foreground font-mono">
+                {p.slug}
+              </p>
             </div>
             {isAdmin ? (
               <select
@@ -1101,7 +1115,8 @@ function TeamPermissionsPanel({
                   setAccess.mutate({
                     teamId: team.id,
                     projectId: p.id,
-                    access: (e.target.value || null) as "VIEWER" | "MEMBER" | "ADMIN" | null,
+                    access: (e.target.value || null) as
+                      "VIEWER" | "MEMBER" | "ADMIN" | null,
                   })
                 }
                 className="rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"

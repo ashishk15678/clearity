@@ -600,7 +600,10 @@ export default function RootPage() {
     s.src = "/clarity.js";
     s.setAttribute("data-project-id", PROJECT_ID);
     s.setAttribute("data-api-key", API_KEY);
-    s.setAttribute("data-ingest", "http://localhost:4000");
+    s.setAttribute(
+      "data-ingest",
+      process.env.NEXT_PUBLIC_INGEST_URL ?? "http://localhost:4000",
+    );
     document.head.appendChild(s);
   }, []);
 

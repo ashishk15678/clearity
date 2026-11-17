@@ -63,7 +63,6 @@ export function ProjectDetail({ project }: { project: ProjectWithCount }) {
 
   return (
     <div className="flex flex-col min-h-0 flex-1">
-      {/* ── Project header ──────────────────────────────────────────────── */}
       <div className="border-b border-border bg-background px-5 sm:px-6 pt-5 pb-0">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-4">
           <div className="min-w-0">
@@ -2124,8 +2123,7 @@ function SetupTab({ projectId }: { projectId: string }) {
     });
   };
 
-  const INGEST = "http://localhost:4000"; // or your deployed URL
-
+  const INGEST = process.env.NEXT_PUBLIC_INGEST_URL ?? "http://localhost:4000";
   const snippets = [
     {
       key: "script",
@@ -2321,7 +2319,9 @@ function IngestHint({
     <div className="mt-4 space-y-2 text-left max-w-xl">
       <p className="text-xs text-muted-foreground">Try it with curl:</p>
       <pre className="overflow-x-auto rounded-md bg-zinc-950 dark:bg-black p-3 text-[11px] text-zinc-300 font-mono leading-relaxed">
-        {`curl -X POST http://localhost:4000${endpoint} \\
+        {`curl -X POST ${
+          process.env.NEXT_PUBLIC_INGEST_URL ?? "http://localhost:4000"
+        }${endpoint} \\
   -H "Content-Type: application/json" \\
   -H "X-API-Key: <your-api-key>" \\
   -d '${body}'`}

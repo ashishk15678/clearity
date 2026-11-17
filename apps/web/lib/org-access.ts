@@ -103,11 +103,11 @@ export async function requireProjectAccess(
     return {
       project,
       membership: {
-        id:             teamGrant.id,
-        role:           teamGrant.access,   // effective role for this call
+        id: teamGrant.id,
+        role: teamGrant.access, // effective role for this call
         organizationId: project.organizationId,
         userId,
-        createdAt:      teamGrant.grantedAt,
+        createdAt: teamGrant.grantedAt,
       },
     };
   }

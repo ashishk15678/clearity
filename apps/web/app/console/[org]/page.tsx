@@ -41,12 +41,44 @@ export default async function ConsolePage({
       }),
     ]);
 
-  const stats: { label: string; value: string; sub: string; href: string; accent?: boolean }[] = [
-    { label: "Projects",    value: projects.length.toString(),       sub: "total",       href: `/console/${orgSlug}/projects` },
-    { label: "Events",      value: totalEvents.toLocaleString(),     sub: "all time",    href: `/console/${orgSlug}/projects` },
-    { label: "Page Views",  value: totalPageViews.toLocaleString(),  sub: "all time",    href: `/console/${orgSlug}/projects` },
-    { label: "Sessions",    value: totalSessions.toLocaleString(),   sub: "recorded",    href: `/console/${orgSlug}/projects` },
-    { label: "Open Errors", value: totalErrors.toLocaleString(),     sub: "unresolved",  href: `/console/${orgSlug}/projects`, accent: totalErrors > 0 },
+  const stats: {
+    label: string;
+    value: string;
+    sub: string;
+    href: string;
+    accent?: boolean;
+  }[] = [
+    {
+      label: "Projects",
+      value: projects.length.toString(),
+      sub: "total",
+      href: `/console/${orgSlug}/projects`,
+    },
+    {
+      label: "Events",
+      value: totalEvents.toLocaleString(),
+      sub: "all time",
+      href: `/console/${orgSlug}/projects`,
+    },
+    {
+      label: "Page Views",
+      value: totalPageViews.toLocaleString(),
+      sub: "all time",
+      href: `/console/${orgSlug}/projects`,
+    },
+    {
+      label: "Sessions",
+      value: totalSessions.toLocaleString(),
+      sub: "recorded",
+      href: `/console/${orgSlug}/projects`,
+    },
+    {
+      label: "Open Errors",
+      value: totalErrors.toLocaleString(),
+      sub: "unresolved",
+      href: `/console/${orgSlug}/projects`,
+      accent: totalErrors > 0,
+    },
   ];
 
   return (
@@ -55,12 +87,13 @@ export default async function ConsolePage({
 
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 py-8 space-y-8">
-
           {/* ── Org header ──────────────────────────────────────────────── */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-semibold text-foreground">{org.name}</h2>
+                <h2 className="text-base font-semibold text-foreground">
+                  {org.name}
+                </h2>
                 <RoleBadge role={membership.role} />
               </div>
               <p className="mt-0.5 text-sm text-muted-foreground">
@@ -73,7 +106,11 @@ export default async function ConsolePage({
             >
               Manage team
               <svg className="h-3 w-3" viewBox="0 0 16 16" fill="currentColor">
-                <path fillRule="evenodd" d="M6.22 3.22a.75.75 0 011.06 0l4.25 4.25a.75.75 0 010 1.06l-4.25 4.25a.75.75 0 01-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 010-1.06z" clipRule="evenodd" />
+                <path
+                  fillRule="evenodd"
+                  d="M6.22 3.22a.75.75 0 011.06 0l4.25 4.25a.75.75 0 010 1.06l-4.25 4.25a.75.75 0 01-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 010-1.06z"
+                  clipRule="evenodd"
+                />
               </svg>
             </Link>
           </div>
@@ -89,7 +126,9 @@ export default async function ConsolePage({
                 <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
                   {s.label}
                 </p>
-                <p className={`text-2xl font-bold tabular-nums leading-none ${s.accent ? "text-destructive" : "text-foreground"}`}>
+                <p
+                  className={`text-2xl font-bold tabular-nums leading-none ${s.accent ? "text-destructive" : "text-foreground"}`}
+                >
                   {s.value}
                 </p>
                 <p className="text-xs text-muted-foreground">{s.sub}</p>
@@ -99,12 +138,14 @@ export default async function ConsolePage({
 
           {/* ── Bottom section ───────────────────────────────────────────── */}
           <div className="grid gap-6 lg:grid-cols-3">
-
             {/* Recent projects */}
             <div className="lg:col-span-2 space-y-3">
               <SectionHeader
                 title="Recent Projects"
-                action={{ label: "View all", href: `/console/${orgSlug}/projects` }}
+                action={{
+                  label: "View all",
+                  href: `/console/${orgSlug}/projects`,
+                }}
               />
 
               {projects.length === 0 ? (
@@ -118,14 +159,30 @@ export default async function ConsolePage({
                       className="flex items-center justify-between px-4 py-3 bg-card hover:bg-muted/50 transition-colors group"
                     >
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
-                        <p className="text-xs text-muted-foreground font-mono">{p.slug}</p>
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {p.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground font-mono">
+                          {p.slug}
+                        </p>
                       </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0 ml-4">
-                        <span className="hidden sm:block tabular-nums">{p._count.events.toLocaleString()} events</span>
-                        <span className="hidden sm:block tabular-nums">{p._count.pageViews.toLocaleString()} views</span>
-                        <svg className="h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" viewBox="0 0 16 16" fill="currentColor">
-                          <path fillRule="evenodd" d="M6.22 3.22a.75.75 0 011.06 0l4.25 4.25a.75.75 0 010 1.06l-4.25 4.25a.75.75 0 01-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 010-1.06z" clipRule="evenodd" />
+                        <span className="hidden sm:block tabular-nums">
+                          {p._count.events.toLocaleString()} events
+                        </span>
+                        <span className="hidden sm:block tabular-nums">
+                          {p._count.pageViews.toLocaleString()} views
+                        </span>
+                        <svg
+                          className="h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors"
+                          viewBox="0 0 16 16"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M6.22 3.22a.75.75 0 011.06 0l4.25 4.25a.75.75 0 010 1.06l-4.25 4.25a.75.75 0 01-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 010-1.06z"
+                            clipRule="evenodd"
+                          />
                         </svg>
                       </div>
                     </Link>
@@ -138,13 +195,32 @@ export default async function ConsolePage({
             <div className="space-y-3">
               <SectionHeader title="Get started" />
               <div className="rounded-lg border border-border bg-card divide-y divide-border overflow-hidden">
-                <CheckStep n={1} done={projects.length > 0}   label="Create a project"   href={`/console/${orgSlug}/projects`} />
-                <CheckStep n={2} done={false}                  label="Generate an API key" href={`/console/${orgSlug}/projects`} />
-                <CheckStep n={3} done={false}                  label="Install the SDK"     href={`/console/${orgSlug}/settings`} />
-                <CheckStep n={4} done={false}                  label="Invite your team"    href={`/console/${orgSlug}/teams`} />
+                <CheckStep
+                  n={1}
+                  done={projects.length > 0}
+                  label="Create a project"
+                  href={`/console/${orgSlug}/projects`}
+                />
+                <CheckStep
+                  n={2}
+                  done={false}
+                  label="Generate an API key"
+                  href={`/console/${orgSlug}/projects`}
+                />
+                <CheckStep
+                  n={3}
+                  done={false}
+                  label="Install the SDK"
+                  href={`/console/${orgSlug}/settings`}
+                />
+                <CheckStep
+                  n={4}
+                  done={false}
+                  label="Invite your team"
+                  href={`/console/${orgSlug}/teams`}
+                />
               </div>
             </div>
-
           </div>
         </div>
       </div>
@@ -173,7 +249,10 @@ function SectionHeader({
     <div className="flex items-center justify-between">
       <h3 className="text-[13px] font-semibold text-foreground">{title}</h3>
       {action && (
-        <Link href={action.href} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+        <Link
+          href={action.href}
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
           {action.label} →
         </Link>
       )}
@@ -185,12 +264,18 @@ function EmptyProjects({ orgSlug }: { orgSlug: string }) {
   return (
     <div className="rounded-lg border border-dashed border-border bg-card flex flex-col items-center justify-center py-12 text-center">
       <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg border border-border">
-        <svg className="h-4 w-4 text-muted-foreground" viewBox="0 0 20 20" fill="currentColor">
+        <svg
+          className="h-4 w-4 text-muted-foreground"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
           <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
         </svg>
       </div>
       <p className="text-sm font-medium text-foreground">No projects yet</p>
-      <p className="mt-0.5 text-xs text-muted-foreground">Create one to start tracking.</p>
+      <p className="mt-0.5 text-xs text-muted-foreground">
+        Create one to start tracking.
+      </p>
       <Link
         href={`/console/${orgSlug}/projects`}
         className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-xs font-medium text-background hover:opacity-90 transition-opacity"
@@ -232,7 +317,9 @@ function CheckStep({
           n
         )}
       </span>
-      <span className={`text-sm ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>
+      <span
+        className={`text-sm ${done ? "line-through text-muted-foreground" : "text-foreground"}`}
+      >
         {label}
       </span>
     </Link>

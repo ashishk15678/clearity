@@ -1,7 +1,3 @@
 target
 .env
 
-curl -X POST http://localhost:4000/track/event \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: clr_live_kmLHlJCx01U4NAlvz7tvbqQsDLTKTU7l" \
-  -d '{"project_id":"d4e9e17f-129d-4f7f-8498-ab3717ad5f88","name":"button_click","url":"/"}

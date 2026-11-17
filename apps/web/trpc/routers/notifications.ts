@@ -5,7 +5,9 @@ import { prisma } from "@/lib/prisma";
 export const notificationsRouter = createTRPCRouter({
   /** Most-recent 50 notifications for the current user. */
   list: protectedProcedure
-    .input(z.object({ limit: z.number().min(1).max(100).default(50) }).optional())
+    .input(
+      z.object({ limit: z.number().min(1).max(100).default(50) }).optional(),
+    )
     .query(async ({ ctx, input }) => {
       return prisma.notification.findMany({
         where: { userId: ctx.user.id },
@@ -55,7 +57,8 @@ export async function emitNotification(
   link?: string,
 ) {
   const { createId } = await import("@paralleldrive/cuid2").catch(() => ({
-    createId: () => `notif_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+    createId: () =>
+      `notif_${Date.now()}_${Math.random().toString(36).slice(2)}`,
   }));
   await prisma.notification.create({
     data: {
