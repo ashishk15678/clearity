@@ -35,26 +35,27 @@ export default function BillingPage() {
   return (
     <div className="flex flex-col">
       <Topbar title="Billing" />
-      <div className="flex-1 p-6 space-y-8">
+      <div className="flex-1 p-6 space-y-8 max-w-4xl">
+
         {/* Current plan */}
         <div>
-          <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50 mb-4">
+          <h2 className="text-[13px] font-semibold text-foreground mb-3">
             Current Plan
           </h2>
           <Card className="max-w-lg">
             <CardContent className="pt-5 flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
+                  <span className="text-[15px] font-bold text-foreground">
                     Hobby
                   </span>
                   <Badge variant="success">Active</Badge>
                 </div>
-                <p className="mt-1 text-sm text-zinc-500">
+                <p className="mt-1 text-[12px] text-muted-foreground">
                   Free forever — no credit card required.
                 </p>
               </div>
-              <span className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+              <span className="text-[22px] font-bold text-foreground tabular-nums">
                 $0
               </span>
             </CardContent>
@@ -63,10 +64,10 @@ export default function BillingPage() {
 
         {/* Usage */}
         <div>
-          <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50 mb-4">
+          <h2 className="text-[13px] font-semibold text-foreground mb-3">
             Usage This Cycle
           </h2>
-          <div className="grid gap-4 sm:grid-cols-3 max-w-2xl">
+          <div className="grid gap-3 sm:grid-cols-3 max-w-2xl">
             <UsageBar label="Events" used={0} limit={100_000} />
             <UsageBar label="Page Views" used={0} limit={500_000} />
             <UsageBar label="Projects" used={0} limit={3} />
@@ -75,47 +76,47 @@ export default function BillingPage() {
 
         {/* Plans */}
         <div>
-          <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50 mb-4">
+          <h2 className="text-[13px] font-semibold text-foreground mb-3">
             Plans
           </h2>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-3">
             {PLANS.map((plan) => (
               <Card
                 key={plan.name}
                 className={
                   plan.current
-                    ? "border-indigo-300 dark:border-indigo-700 ring-1 ring-indigo-300 dark:ring-indigo-700"
+                    ? "border-primary/40 ring-1 ring-primary/30"
                     : ""
                 }
               >
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-zinc-900 dark:text-zinc-50">
+                    <span className="text-[13px] font-semibold text-foreground">
                       {plan.name}
                     </span>
                     {plan.current && <Badge variant="default">Current</Badge>}
                   </div>
-                  <p className="mt-1 text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+                  <p className="mt-1 text-[22px] font-bold text-foreground tabular-nums">
                     {plan.price}
                   </p>
                 </CardHeader>
                 <CardContent>
-                  <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
+                  <ul className="space-y-2 text-[12px] text-muted-foreground">
                     <li className="flex justify-between">
                       <span>Events / mo</span>
-                      <span className="font-medium text-zinc-900 dark:text-zinc-200">
+                      <span className="font-semibold text-foreground">
                         {plan.events}
                       </span>
                     </li>
                     <li className="flex justify-between">
                       <span>Page views / mo</span>
-                      <span className="font-medium text-zinc-900 dark:text-zinc-200">
+                      <span className="font-semibold text-foreground">
                         {plan.pageViews}
                       </span>
                     </li>
                     <li className="flex justify-between">
                       <span>Projects</span>
-                      <span className="font-medium text-zinc-900 dark:text-zinc-200">
+                      <span className="font-semibold text-foreground">
                         {plan.projects}
                       </span>
                     </li>
@@ -123,7 +124,7 @@ export default function BillingPage() {
                   {!plan.current && (
                     <button
                       disabled
-                      className="mt-4 w-full rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50 transition-colors"
+                      className="mt-4 w-full rounded-md bg-foreground px-3 py-1.5 text-[12px] font-medium text-background hover:opacity-90 disabled:opacity-50 transition-opacity"
                     >
                       {plan.name === "Enterprise" ? "Contact us" : "Upgrade"}
                     </button>
@@ -133,6 +134,7 @@ export default function BillingPage() {
             ))}
           </div>
         </div>
+
       </div>
     </div>
   );
@@ -151,19 +153,21 @@ function UsageBar({
   return (
     <Card>
       <CardContent className="pt-4">
-        <div className="flex justify-between text-xs mb-1.5">
-          <span className="text-zinc-500">{label}</span>
-          <span className="font-medium text-zinc-700 dark:text-zinc-300">
+        <div className="flex justify-between text-[11px] mb-1.5">
+          <span className="text-muted-foreground font-medium">{label}</span>
+          <span className="font-semibold text-foreground tabular-nums">
             {used.toLocaleString()} / {limit.toLocaleString()}
           </span>
         </div>
-        <div className="h-2 rounded-full bg-zinc-100 dark:bg-zinc-800">
+        <div className="h-1.5 rounded-full bg-muted">
           <div
-            className="h-full rounded-full bg-indigo-500 transition-all"
+            className="h-full rounded-full bg-primary transition-all"
             style={{ width: `${pct}%` }}
           />
         </div>
-        <p className="mt-1 text-xs text-zinc-400">{pct.toFixed(0)}% used</p>
+        <p className="mt-1.5 text-[11px] text-muted-foreground">
+          {pct.toFixed(0)}% used
+        </p>
       </CardContent>
     </Card>
   );

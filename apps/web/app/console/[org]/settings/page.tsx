@@ -5,34 +5,41 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { SignOutButton } from "./sign-out-button";
 import { UserAvatar } from "@/components/user-avatar";
 
-// export const instant = false;
 export const metadata = { title: "Settings · Clarity" };
 
 export default async function SettingsPage() {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return null;
   const user = session.user;
-  const ingest_url =
-    process.env.NEXT_PUBLIC_INGEST_URL ?? "http://localhost:4000";
+  const ingest_url = process.env.NEXT_PUBLIC_INGEST_URL;
+  if (!ingest_url) {
+    console.warn(
+      "[clarity] NEXT_PUBLIC_INGEST_URL is not set — ingest endpoint display will be blank.",
+    );
+  }
+
   return (
     <div className="flex flex-col">
       <Topbar title="Settings" />
-      <div className="flex-1 p-6 space-y-6 max-w-2xl">
+      <div className="flex-1 p-6 space-y-4 max-w-2xl">
+
         {/* Profile */}
         <Card>
           <CardHeader>
-            <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+            <span className="text-[13px] font-semibold text-foreground">
               Profile
             </span>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent>
             <div className="flex items-center gap-4">
-              <UserAvatar name={user.name ?? user.email ?? ""} size={64} />
+              <UserAvatar name={user.name ?? user.email ?? ""} size={48} />
               <div>
-                <p className="font-semibold text-zinc-900 dark:text-zinc-50">
+                <p className="text-[13px] font-semibold text-foreground">
                   {user.name}
                 </p>
-                <p className="text-sm text-zinc-500">{user.email}</p>
+                <p className="text-[12px] text-muted-foreground mt-0.5">
+                  {user.email}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -41,59 +48,67 @@ export default async function SettingsPage() {
         {/* Ingest endpoint */}
         <Card>
           <CardHeader>
-            <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+            <span className="text-[13px] font-semibold text-foreground">
               Ingest Endpoint
             </span>
           </CardHeader>
           <CardContent className="space-y-3">
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              Send tracking data to the Ingest service. It runs on port 4000 by
-              default.
+            <p className="text-[12px] text-muted-foreground">
+              Send tracking data to the Ingest service.
             </p>
-            <div className="grid gap-2 text-sm">
-              {[
-                ["Track Event", `POST ${ingest_url}/track/event`],
-                ["Track Page View", `POST ${ingest_url}/track/pageview`],
-                ["Health", `GET ${ingest_url}/health`],
+            <div className="grid gap-2">
+              {ingest_url ? (
                 [
-                  "Event Report",
-                  `GET ${ingest_url}/reports/events?project_id=…`,
-                ],
-                [
-                  "Pageview Report",
-                  `GET ${ingest_url}/reports/pageviews?project_id=…`,
-                ],
-              ].map(([label, url]) => (
-                <div key={label} className="flex flex-col gap-0.5">
-                  <span className="text-xs text-zinc-400">{label}</span>
-                  <code className="rounded-lg bg-zinc-100 dark:bg-zinc-800 px-3 py-1.5 text-xs font-mono text-zinc-700 dark:text-zinc-300 break-all">
-                    {url}
-                  </code>
+                  ["Track Event", `POST ${ingest_url}/track/event`],
+                  ["Track Page View", `POST ${ingest_url}/track/pageview`],
+                  ["Health", `GET ${ingest_url}/health`],
+                  ["Event Report", `GET ${ingest_url}/reports/events?project_id=…`],
+                  ["Pageview Report", `GET ${ingest_url}/reports/pageviews?project_id=…`],
+                ].map(([label, url]) => (
+                  <div key={label} className="flex flex-col gap-0.5">
+                    <span className="text-[11px] text-muted-foreground/60 font-medium uppercase tracking-wide">
+                      {label}
+                    </span>
+                    <code className="rounded-md border border-border bg-muted px-3 py-1.5 text-[11px] font-mono text-foreground break-all">
+                      {url}
+                    </code>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2.5">
+                  <p className="text-[12px] font-medium text-destructive">
+                    NEXT_PUBLIC_INGEST_URL is not configured.
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    Set it in <code className="font-mono">apps/web/.env</code>{" "}
+                    and restart the server.
+                  </p>
                 </div>
-              ))}
+              )}
             </div>
           </CardContent>
         </Card>
 
         {/* Danger zone */}
-        <Card className="border-red-200 dark:border-red-900">
+        <Card className="border-destructive/30">
           <CardHeader>
-            <span className="text-sm font-semibold text-red-600 dark:text-red-400">
+            <span className="text-[13px] font-semibold text-destructive">
               Danger Zone
             </span>
           </CardHeader>
-          <CardContent className="flex items-center justify-between">
+          <CardContent className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+              <p className="text-[13px] font-medium text-foreground">
                 Sign out
               </p>
-              <p className="text-xs text-zinc-500 mt-0.5">
+              <p className="text-[12px] text-muted-foreground mt-0.5">
                 You&apos;ll need to sign in again to access your dashboard.
               </p>
             </div>
             <SignOutButton />
           </CardContent>
         </Card>
+
       </div>
     </div>
   );

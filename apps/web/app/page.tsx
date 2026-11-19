@@ -587,23 +587,27 @@ function HeroIllustration() {
 
 // ─── SDK auto-load ─────────────────────────────────────────────────────────────
 
-const API_KEY = "clr_live_kmLHlJCx01U4NAlvz7tvbqQsDLTKTU7l";
-const PROJECT_ID = "d4e9e17f-129d-4f7f-8498-ab3717ad5f88";
+// Self-dogfooding: Clarity tracks its own marketing page.
+// Rotate by setting new env vars — never re-commit a live key.
+const API_KEY = process.env.NEXT_PUBLIC_CLARITY_API_KEY ?? "";
+const PROJECT_ID = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID ?? "";
 
 export default function RootPage() {
   const scriptLoaded = useRef(false);
+  const ingestUrl = process.env.NEXT_PUBLIC_INGEST_URL;
 
   useLayoutEffect(() => {
+    if (!ingestUrl) {
+      console.warn("[CLARITY] NEXT_PUBLIC_INGEST_URL is not set — tracking script will not load.");
+      return;
+    }
     if (scriptLoaded.current) return;
     scriptLoaded.current = true;
     const s = document.createElement("script");
     s.src = "/clarity.js";
     s.setAttribute("data-project-id", PROJECT_ID);
     s.setAttribute("data-api-key", API_KEY);
-    s.setAttribute(
-      "data-ingest",
-      process.env.NEXT_PUBLIC_INGEST_URL ?? "http://localhost:4000",
-    );
+    s.setAttribute("data-ingest", ingestUrl);
     document.head.appendChild(s);
   }, []);
 

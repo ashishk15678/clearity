@@ -107,10 +107,14 @@ export function ProjectDetail({ project }: { project: ProjectWithCount }) {
       </div>
 
       <div className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur-xs px-5 sm:px-6">
-        <div className="flex gap-0 overflow-x-auto -mb-px">
+        <div role="tablist" aria-label="Project sections" className="flex gap-0 overflow-x-auto -mb-px">
           {tabs.map((t) => (
             <button
               key={t.id}
+              role="tab"
+              aria-selected={tab === t.id}
+              aria-controls={`tabpanel-${t.id}`}
+              id={`tab-${t.id}`}
               onClick={() => setTab(t.id)}
               className={cn(
                 "shrink-0 px-4 py-2.5 text-[13px] font-medium border-b-2 transition-colors whitespace-nowrap",
@@ -127,7 +131,12 @@ export function ProjectDetail({ project }: { project: ProjectWithCount }) {
 
       {/* ── Tab panels ──────────────────────────────────────────────── */}
       <div className="flex-1">
-        <div className="px-5 sm:px-6 py-6">
+        <div
+          role="tabpanel"
+          id={`tabpanel-${tab}`}
+          aria-labelledby={`tab-${tab}`}
+          className="px-5 sm:px-6 py-6"
+        >
           {tab === "overview" && <OverviewTab projectId={project.id} />}
           {tab === "analytics" && <AnalyticsTab projectId={project.id} />}
           {tab === "events" && <EventsTab projectId={project.id} />}
@@ -2122,7 +2131,22 @@ function SetupTab({ projectId }: { projectId: string }) {
     });
   };
 
-  const INGEST = process.env.NEXT_PUBLIC_INGEST_URL ?? "http://localhost:4000";
+  const INGEST = process.env.NEXT_PUBLIC_INGEST_URL;
+
+  if (!INGEST) {
+    return (
+      <div className="rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 max-w-2xl">
+        <p className="text-sm font-medium text-destructive">
+          NEXT_PUBLIC_INGEST_URL is not configured
+        </p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Set it in <code className="font-mono">apps/web/.env</code> and restart
+          the dev server. SDK setup and curl snippets require this URL.
+        </p>
+      </div>
+    );
+  }
+
   const snippets = [
     {
       key: "script",
@@ -2319,7 +2343,7 @@ function IngestHint({
       <p className="text-xs text-muted-foreground">Try it with curl:</p>
       <pre className="overflow-x-auto rounded-md bg-zinc-950 dark:bg-black p-3 text-[11px] text-zinc-300 font-mono leading-relaxed">
         {`curl -X POST ${
-          process.env.NEXT_PUBLIC_INGEST_URL ?? "http://localhost:4000"
+          process.env.NEXT_PUBLIC_INGEST_URL ?? "(NEXT_PUBLIC_INGEST_URL not set)"
         }${endpoint} \\
   -H "Content-Type: application/json" \\
   -H "X-API-Key: <your-api-key>" \\

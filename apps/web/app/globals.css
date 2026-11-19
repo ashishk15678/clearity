@@ -38,13 +38,13 @@
   --ring: #0070f3;
 
   /* Sidebar */
-  --sidebar: #ffffff;
+  --sidebar: #f8f8f8;
   --sidebar-foreground: #111111;
   --sidebar-primary: #0070f3;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f2f2f2;
+  --sidebar-accent: #ebebeb;
   --sidebar-accent-foreground: #111111;
-  --sidebar-border: #eaeaea;
+  --sidebar-border: #e4e4e4;
   --sidebar-ring: #0070f3;
 
   /* Charts */
@@ -105,13 +105,13 @@
   --ring: #0070f3;
 
   /* Sidebar */
-  --sidebar: #0a0a0a;
-  --sidebar-foreground: #ededed;
+  --sidebar: #0d0d0d;
+  --sidebar-foreground: #e8e8e8;
   --sidebar-primary: #0070f3;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1a1a1a;
-  --sidebar-accent-foreground: #ededed;
-  --sidebar-border: #222222;
+  --sidebar-accent: #1c1c1c;
+  --sidebar-accent-foreground: #e8e8e8;
+  --sidebar-border: #242424;
   --sidebar-ring: #0070f3;
 
   /* Charts */

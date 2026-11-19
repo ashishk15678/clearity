@@ -28,7 +28,7 @@ export default async function ConsolePage({
       prisma.project.findMany({
         where: { organizationId: org.id },
         orderBy: { updatedAt: "desc" },
-        take: 6,
+        take: 8,
         include: { _count: { select: { events: true, pageViews: true } } },
       }),
       prisma.event.count({ where: { project: { organizationId: org.id } } }),
@@ -46,7 +46,7 @@ export default async function ConsolePage({
     value: string;
     sub: string;
     href: string;
-    accent?: boolean;
+    warn?: boolean;
   }[] = [
     {
       label: "Projects",
@@ -58,13 +58,13 @@ export default async function ConsolePage({
       label: "Events",
       value: totalEvents.toLocaleString(),
       sub: "all time",
-      href: `/console/${orgSlug}/projects`,
+      href: `/console/${orgSlug}/reports`,
     },
     {
       label: "Page Views",
       value: totalPageViews.toLocaleString(),
       sub: "all time",
-      href: `/console/${orgSlug}/projects`,
+      href: `/console/${orgSlug}/reports`,
     },
     {
       label: "Sessions",
@@ -77,7 +77,7 @@ export default async function ConsolePage({
       value: totalErrors.toLocaleString(),
       sub: "unresolved",
       href: `/console/${orgSlug}/projects`,
-      accent: totalErrors > 0,
+      warn: totalErrors > 0,
     },
   ];
 
@@ -86,111 +86,120 @@ export default async function ConsolePage({
       <Topbar title="Overview" />
 
       <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 py-8 space-y-8">
-          {/* ── Org header ──────────────────────────────────────────────── */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="mx-auto max-w-4xl px-5 sm:px-8 py-8 space-y-8">
+
+          {/* ── Page header ─────────────────────────────────────────────── */}
+          <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-semibold text-foreground">
+              <div className="flex items-center gap-2.5">
+                <h2 className="text-[15px] font-semibold text-foreground">
                   {org.name}
                 </h2>
                 <RoleBadge role={membership.role} />
               </div>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                Welcome back, {session.user.name ?? session.user.email} 👋
+              <p className="mt-1 text-[13px] text-muted-foreground">
+                Welcome back,{" "}
+                <span className="text-foreground font-medium">
+                  {session.user.name ?? session.user.email}
+                </span>
               </p>
             </div>
             <Link
               href={`/console/${orgSlug}/teams`}
-              className="self-start sm:self-auto inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+              className="shrink-0 inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-[12px] font-medium text-foreground hover:bg-muted transition-colors"
             >
               Manage team
-              <svg className="h-3 w-3" viewBox="0 0 16 16" fill="currentColor">
-                <path
-                  fillRule="evenodd"
-                  d="M6.22 3.22a.75.75 0 011.06 0l4.25 4.25a.75.75 0 010 1.06l-4.25 4.25a.75.75 0 01-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 010-1.06z"
-                  clipRule="evenodd"
-                />
+              <svg className="h-3 w-3 text-muted-foreground" viewBox="0 0 16 16" fill="currentColor">
+                <path fillRule="evenodd" d="M6.22 3.22a.75.75 0 011.06 0l4.25 4.25a.75.75 0 010 1.06l-4.25 4.25a.75.75 0 01-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 010-1.06z" clipRule="evenodd" />
               </svg>
             </Link>
           </div>
 
-          {/* ── Stat grid ───────────────────────────────────────────────── */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {/* ── Stat strip ──────────────────────────────────────────────── */}
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
             {stats.map((s) => (
               <Link
                 key={s.label}
                 href={s.href}
-                className="group flex flex-col gap-1 rounded-lg border border-border bg-card p-4 hover:border-foreground/20 transition-colors"
+                className="group relative flex flex-col gap-1.5 rounded-lg border border-border bg-card px-4 py-3.5 hover:border-border/80 hover:bg-muted/30 transition-all"
               >
-                <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
                   {s.label}
                 </p>
                 <p
-                  className={`text-2xl font-bold tabular-nums leading-none ${s.accent ? "text-destructive" : "text-foreground"}`}
+                  className={`text-[22px] font-bold tabular-nums leading-none tracking-tight ${
+                    s.warn ? "text-destructive" : "text-foreground"
+                  }`}
                 >
                   {s.value}
                 </p>
-                <p className="text-xs text-muted-foreground">{s.sub}</p>
+                <p className="text-[11px] text-muted-foreground/60">{s.sub}</p>
+                {s.warn && (
+                  <span className="absolute top-3 right-3 h-1.5 w-1.5 rounded-full bg-destructive" />
+                )}
               </Link>
             ))}
           </div>
 
-          {/* ── Bottom section ───────────────────────────────────────────── */}
-          <div className="grid gap-6 lg:grid-cols-3">
-            {/* Recent projects */}
-            <div className="lg:col-span-2 space-y-3">
-              <SectionHeader
-                title="Recent Projects"
-                action={{
-                  label: "View all",
-                  href: `/console/${orgSlug}/projects`,
-                }}
-              />
+          {/* ── Recent projects ─────────────────────────────────────────── */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[13px] font-semibold text-foreground">
+                Recent projects
+              </h3>
+              <Link
+                href={`/console/${orgSlug}/projects`}
+                className="text-[12px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                View all →
+              </Link>
+            </div>
 
-              {projects.length === 0 ? (
-                <EmptyProjects orgSlug={orgSlug} />
-              ) : (
-                <div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
-                  {projects.map((p) => (
-                    <Link
-                      key={p.id}
-                      href={`/console/${orgSlug}/projects/${p.slug}`}
-                      className="flex items-center justify-between px-4 py-3 bg-card hover:bg-muted/50 transition-colors group"
-                    >
+            {projects.length === 0 ? (
+              <EmptyProjects orgSlug={orgSlug} />
+            ) : (
+              <div className="rounded-lg border border-border overflow-hidden">
+                {projects.map((p, i) => (
+                  <Link
+                    key={p.id}
+                    href={`/console/${orgSlug}/projects/${p.slug}`}
+                    className={`flex items-center justify-between px-4 py-3 bg-card hover:bg-muted/40 transition-colors group ${
+                      i < projects.length - 1 ? "border-b border-border" : ""
+                    }`}
+                  >
+                    {/* Left: name + slug */}
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-7 w-7 shrink-0 rounded-md bg-muted border border-border flex items-center justify-center text-[11px] font-semibold text-muted-foreground uppercase">
+                        {p.name[0]}
+                      </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">
+                        <p className="text-[13px] font-medium text-foreground truncate">
                           {p.name}
                         </p>
-                        <p className="text-xs text-muted-foreground font-mono">
+                        <p className="text-[11px] text-muted-foreground font-mono leading-none mt-0.5">
                           {p.slug}
                         </p>
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0 ml-4">
-                        <span className="hidden sm:block tabular-nums">
-                          {p._count.events.toLocaleString()} events
-                        </span>
-                        <span className="hidden sm:block tabular-nums">
-                          {p._count.pageViews.toLocaleString()} views
-                        </span>
-                        <svg
-                          className="h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors"
-                          viewBox="0 0 16 16"
-                          fill="currentColor"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M6.22 3.22a.75.75 0 011.06 0l4.25 4.25a.75.75 0 010 1.06l-4.25 4.25a.75.75 0 01-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 010-1.06z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
+                    </div>
+
+                    {/* Right: counts + arrow */}
+                    <div className="flex items-center gap-4 shrink-0 ml-4">
+                      <StatPill label="events" value={p._count.events} />
+                      <StatPill label="views" value={p._count.pageViews} />
+                      <svg
+                        className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-muted-foreground/60 transition-colors"
+                        viewBox="0 0 16 16"
+                        fill="currentColor"
+                      >
+                        <path fillRule="evenodd" d="M6.22 3.22a.75.75 0 011.06 0l4.25 4.25a.75.75 0 010 1.06l-4.25 4.25a.75.75 0 01-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 010-1.06z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
+
         </div>
       </div>
     </div>
@@ -201,38 +210,29 @@ export default async function ConsolePage({
 
 function RoleBadge({ role }: { role: string }) {
   return (
-    <span className="inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+    <span className="inline-flex items-center rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
       {role}
     </span>
   );
 }
 
-function SectionHeader({
-  title,
-  action,
-}: {
-  title: string;
-  action?: { label: string; href: string };
-}) {
+function StatPill({ label, value }: { label: string; value: number }) {
   return (
-    <div className="flex items-center justify-between">
-      <h3 className="text-[13px] font-semibold text-foreground">{title}</h3>
-      {action && (
-        <Link
-          href={action.href}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          {action.label} →
-        </Link>
-      )}
+    <div className="hidden sm:flex flex-col items-end">
+      <span className="text-[12px] font-semibold tabular-nums text-foreground leading-none">
+        {value.toLocaleString()}
+      </span>
+      <span className="text-[10px] text-muted-foreground/50 mt-0.5 leading-none">
+        {label}
+      </span>
     </div>
   );
 }
 
 function EmptyProjects({ orgSlug }: { orgSlug: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-border bg-card flex flex-col items-center justify-center py-12 text-center w-full">
-      <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg border border-border">
+    <div className="rounded-lg border border-dashed border-border bg-card flex flex-col items-center justify-center py-14 text-center">
+      <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted">
         <svg
           className="h-4 w-4 text-muted-foreground"
           viewBox="0 0 20 20"
@@ -241,56 +241,16 @@ function EmptyProjects({ orgSlug }: { orgSlug: string }) {
           <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
         </svg>
       </div>
-      <p className="text-sm font-medium text-foreground">No projects yet</p>
-      <p className="mt-0.5 text-xs text-muted-foreground">
-        Create one to start tracking.
+      <p className="text-[13px] font-semibold text-foreground">No projects yet</p>
+      <p className="mt-1 text-[12px] text-muted-foreground">
+        Create your first project to start tracking.
       </p>
       <Link
         href={`/console/${orgSlug}/projects`}
-        className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-xs font-medium text-background hover:opacity-90 transition-opacity"
+        className="mt-5 inline-flex items-center gap-1.5 rounded-md bg-foreground px-3.5 py-1.5 text-[12px] font-medium text-background hover:opacity-90 transition-opacity"
       >
         New project
       </Link>
     </div>
-  );
-}
-
-function CheckStep({
-  n,
-  done,
-  label,
-  href,
-}: {
-  n: number;
-  done: boolean;
-  label: string;
-  href: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="flex items-center gap-3 px-4 py-3 bg-card hover:bg-muted/50 transition-colors"
-    >
-      <span
-        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold ${
-          done
-            ? "bg-foreground text-background"
-            : "border border-border text-muted-foreground"
-        }`}
-      >
-        {done ? (
-          <svg className="h-3 w-3" viewBox="0 0 12 12" fill="currentColor">
-            <path d="M10.28 1.28L3.989 8.575 1.695 6.28A1 1 0 00.28 7.695l3 3a1 1 0 001.414 0l7-8a1 1 0 00-1.414-1.414z" />
-          </svg>
-        ) : (
-          n
-        )}
-      </span>
-      <span
-        className={`text-sm ${done ? "line-through text-muted-foreground" : "text-foreground"}`}
-      >
-        {label}
-      </span>
-    </Link>
   );
 }

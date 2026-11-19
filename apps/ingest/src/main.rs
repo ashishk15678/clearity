@@ -4,9 +4,9 @@ mod handlers;
 mod models;
 
 use axum::{
-    Router,
     http::{HeaderName, Method},
     routing::{get, options, post},
+    Router,
 };
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
@@ -25,13 +25,10 @@ async fn preflight() -> axum::http::StatusCode {
 
 #[tokio::main]
 async fn main() {
-    // Load .env from multiple candidate locations so the binary works whether
-    // run from the monorepo root, from apps/ingest/, or as a standalone deploy.
-    // Later calls are no-ops if the variable is already set.
-    dotenvy::from_path("apps/web/.env").ok();      // monorepo root
-    dotenvy::from_path("../web/.env").ok();         // apps/ingest/
-    dotenvy::from_path(".env").ok();                // local override / production
-    dotenvy::dotenv().ok();                         // fallback: nearest .env
+    dotenvy::from_path("apps/web/.env").ok(); // monorepo root
+    dotenvy::from_path("../web/.env").ok(); // apps/ingest/
+    dotenvy::from_path(".env").ok(); // local override / production
+    dotenvy::dotenv().ok(); // fallback: nearest .env
 
     tracing_subscriber::fmt()
         .with_env_filter(
@@ -50,24 +47,25 @@ async fn main() {
     let cors = CorsLayer::new()
         .allow_origin(tower_http::cors::Any)
         .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
-        .allow_headers([
-            HeaderName::from_static("content-type"),
-            HeaderName::from_static("x-api-key"),
-            HeaderName::from_static("authorization"),
-            HeaderName::from_static("x-forwarded-for"),
-            HeaderName::from_static("x-real-ip"),
-        ])
+        // .allow_headers([
+        //     HeaderName::from_static("content-type"),
+        //     HeaderName::from_static("x-api-key"),
+        //     HeaderName::from_static("authorization"),
+        //     HeaderName::from_static("x-forwarded-for"),
+        //     HeaderName::from_static("x-real-ip"),
+        // ])
+        .allow_headers(tower_http::cors::Any)
         .max_age(std::time::Duration::from_secs(86400));
 
     let app = Router::new()
         .route("/{*path}", options(preflight))
-        .route("/health",           get(health))
-        .route("/track/event",      post(track_event))
-        .route("/track/pageview",   post(track_pageview))
-        .route("/track/error",      post(track_error))
-        .route("/session/start",    post(session_start))
-        .route("/session/frames",   post(session_frames))
-        .route("/reports/events",   get(events_report))
+        .route("/health", get(health))
+        .route("/track/event", post(track_event))
+        .route("/track/pageview", post(track_pageview))
+        .route("/track/error", post(track_error))
+        .route("/session/start", post(session_start))
+        .route("/session/frames", post(session_frames))
+        .route("/reports/events", get(events_report))
         .route("/reports/pageviews", get(pageviews_report))
         .layer(cors)
         .layer(TraceLayer::new_for_http())

@@ -5,6 +5,8 @@ import { useParams, usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { UserAvatar } from "@/components/user-avatar";
 
+// ─── Logo ─────────────────────────────────────────────────────────────────────
+
 function ClarityLogo() {
   return (
     <svg viewBox="0 0 20 20" className="h-5 w-5 shrink-0" fill="none">
@@ -20,6 +22,8 @@ function ClarityLogo() {
   );
 }
 
+// ─── Icons ────────────────────────────────────────────────────────────────────
+
 function Icon({
   d,
   d2,
@@ -30,7 +34,7 @@ function Icon({
   evenOdd?: boolean;
 }) {
   return (
-    <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
+    <svg viewBox="0 0 20 20" fill="currentColor" className="h-[15px] w-[15px] shrink-0">
       {d2 ? (
         <>
           <path d={d} />
@@ -116,7 +120,7 @@ function buildNav(orgSlug: string) {
   };
 }
 
-// ─── Sidebar component ────────────────────────────────────────────────────────
+// ─── Sidebar ──────────────────────────────────────────────────────────────────
 
 export function Sidebar({ orgSlug }: { orgSlug: string }) {
   const pathname = usePathname();
@@ -129,22 +133,26 @@ export function Sidebar({ orgSlug }: { orgSlug: string }) {
       : pathname === href ||
         pathname.startsWith(href + "/") ||
         pathname.startsWith(href + "?");
-  const params = useParams<{ slug?: string }>();
 
-  const currentProject = params?.slug;
-  const isInsideProject = Boolean(currentProject);
   return (
-    <aside className="flex h-screen w-[210px] shrink-0 flex-col border-r border-border bg-sidebar">
-      {/* ── Logo / brand ─────────────────────────────────────────────────── */}
-      <div className="flex h-[52px] items-center gap-2.5 border-b border-border px-4">
-        <ClarityLogo />
-        <span className="text-[13px] font-semibold tracking-tight text-foreground">
-          Clarity
-        </span>
+    <aside className="flex h-screen w-[220px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
+      {/* ── Org header ───────────────────────────────────────────────────── */}
+      <div className="flex h-[52px] items-center gap-2.5 px-3 border-b border-sidebar-border">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10">
+          <ClarityLogo />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[13px] font-semibold text-sidebar-foreground leading-none">
+            {orgSlug}
+          </p>
+          <p className="text-[10px] text-sidebar-foreground/40 mt-0.5 leading-none">
+            Workspace
+          </p>
+        </div>
       </div>
 
       {/* ── Nav ──────────────────────────────────────────────────────────── */}
-      <nav className="flex flex-1 flex-col overflow-y-auto px-2 py-3 gap-0.5">
+      <nav className="flex flex-1 flex-col overflow-y-auto px-2 py-3 gap-5">
         {/* Main */}
         <div className="flex flex-col gap-0.5">
           {nav.main.map((item) => (
@@ -159,8 +167,8 @@ export function Sidebar({ orgSlug }: { orgSlug: string }) {
         </div>
 
         {/* Workspace section */}
-        <div className="mt-4 flex flex-col gap-0.5">
-          <p className="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 select-none">
+        <div className="flex flex-col gap-0.5">
+          <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/35 select-none">
             Workspace
           </p>
           {nav.workspace.map((item) => (
@@ -176,18 +184,18 @@ export function Sidebar({ orgSlug }: { orgSlug: string }) {
       </nav>
 
       {/* ── User pill ─────────────────────────────────────────────────────── */}
-      <div className="border-t border-border p-2">
+      <div className="border-t border-sidebar-border p-2">
         <Link
           href={`${base}/settings`}
           className={cn(
-            "flex items-center justify-between gap-2.5 rounded-md px-2.5 py-0.5wazzzzd text-sm transition-colors",
+            "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors",
             isActive(`${base}/settings`)
-              ? "bg-accent text-accent-foreground"
-              : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+              ? "bg-sidebar-accent text-sidebar-foreground"
+              : "text-sidebar-foreground/60 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
           )}
         >
-          <span className="truncate text-xs font-medium">{orgSlug}</span>
-          <UserAvatar name={orgSlug} size={40} />
+          <UserAvatar name={orgSlug} size={22} />
+          <span className="truncate text-[12px] font-medium">{orgSlug}</span>
         </Link>
       </div>
     </aside>
@@ -211,18 +219,18 @@ function NavItem({
     <Link
       href={href}
       className={cn(
-        "group flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors",
+        "group flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] font-medium transition-colors",
         active
-          ? "bg-accent text-foreground"
-          : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+          ? "bg-sidebar-accent text-sidebar-foreground"
+          : "text-sidebar-foreground/55 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
       )}
     >
       <span
         className={cn(
-          "transition-colors",
+          "shrink-0 transition-colors",
           active
-            ? "text-foreground"
-            : "text-muted-foreground group-hover:text-foreground",
+            ? "text-sidebar-foreground"
+            : "text-sidebar-foreground/40 group-hover:text-sidebar-foreground/80",
         )}
       >
         {icon}

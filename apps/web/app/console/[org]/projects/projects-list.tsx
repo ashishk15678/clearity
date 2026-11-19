@@ -10,6 +10,48 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import Link from "next/link";
 
+// ─── Confirm delete dialog ────────────────────────────────────────────────────
+
+function ConfirmDeleteDialog({
+  projectName,
+  onConfirm,
+  onCancel,
+  isPending,
+}: {
+  projectName: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  isPending: boolean;
+}) {
+  return (
+    <Dialog open onOpenChange={onCancel}>
+      <DialogContent>
+        <h3 className="text-[15px] font-semibold text-foreground mb-1">
+          Delete project?
+        </h3>
+        <p className="text-[13px] text-muted-foreground mb-5">
+          <span className="font-medium text-foreground">{projectName}</span>{" "}
+          and all its events, page views, sessions, and API keys will be
+          permanently deleted. This cannot be undone.
+        </p>
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={onConfirm}
+            disabled={isPending}
+          >
+            {isPending ? "Deleting…" : "Delete project"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function ProjectsList({
   orgSlug,
   organizationId,
@@ -20,6 +62,7 @@ export function ProjectsList({
   const trpc = useTRPC();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
 
   const { data: projects, isPending } = useQuery(
     trpc.projects.list.queryOptions({ organizationId }),
@@ -42,6 +85,7 @@ export function ProjectsList({
         qc.invalidateQueries({
           queryKey: trpc.projects.list.queryKey({ organizationId }),
         });
+        setPendingDelete(null);
       },
     }),
   );
@@ -51,10 +95,10 @@ export function ProjectsList({
       {/* Header row */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
+          <h2 className="text-[15px] font-semibold text-foreground">
             Projects
           </h2>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
+          <p className="text-[13px] text-muted-foreground mt-0.5">
             {projects?.length ?? 0} project{projects?.length !== 1 ? "s" : ""}
           </p>
         </div>
@@ -80,25 +124,32 @@ export function ProjectsList({
           {projects?.map((p) => (
             <Link
               href={`/console/${orgSlug}/projects/${p.slug}`}
-              className="block truncate text-sm font-semibold text-zinc-900 dark:text-zinc-50 hover:text-indigo-600 dark:hover:text-indigo-400"
+              className="block"
               key={p.id}
             >
-              <Card className="group transition-colors">
-                <div className="p-5">
+              <Card className="group transition-colors hover:border-border/80 hover:bg-muted/30">
+                <div className="p-4">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      {p.name}
-                      <p className="mt-0.5 truncate text-xs text-zinc-400">
-                        {p.slug}
-                      </p>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-7 w-7 shrink-0 rounded-md bg-muted border border-border flex items-center justify-center text-[11px] font-semibold text-muted-foreground uppercase">
+                        {p.name[0]}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-[13px] font-semibold text-foreground">
+                          {p.name}
+                        </p>
+                        <p className="mt-0.5 truncate text-[11px] font-mono text-muted-foreground">
+                          {p.slug}
+                        </p>
+                      </div>
                     </div>
                     <button
                       onClick={(e) => {
                         e.preventDefault();
-                        del.mutate({ id: p.id });
+                        setPendingDelete({ id: p.id, name: p.name });
                       }}
-                      className="opacity-0 group-hover:opacity-100 shrink-0 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-zinc-400 hover:text-red-500 transition-all"
-                      aria-label="Delete project"
+                      className="opacity-0 group-hover:opacity-100 shrink-0 p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
+                      aria-label={`Delete ${p.name}`}
                     >
                       <svg
                         className="h-4 w-4"
@@ -115,36 +166,17 @@ export function ProjectsList({
                   </div>
 
                   {p.description && (
-                    <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2">
+                    <p className="mt-2.5 text-[12px] text-muted-foreground line-clamp-2 pl-10">
                       {p.description}
                     </p>
                   )}
 
-                  <div className="mt-4 flex items-center gap-4 text-xs text-zinc-400">
-                    <span className="flex items-center gap-1">
-                      <svg
-                        className="h-3 w-3"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z" />
-                      </svg>
-                      {p._count.events} events
+                  <div className="mt-3.5 flex items-center gap-4 text-[11px] text-muted-foreground pl-10">
+                    <span className="tabular-nums">
+                      {p._count.events.toLocaleString()} events
                     </span>
-                    <span className="flex items-center gap-1">
-                      <svg
-                        className="h-3 w-3"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                        <path
-                          fillRule="evenodd"
-                          d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      {p._count.pageViews} views
+                    <span className="tabular-nums">
+                      {p._count.pageViews.toLocaleString()} views
                     </span>
                     <span>
                       {p._count.apiKeys} key{p._count.apiKeys !== 1 ? "s" : ""}
@@ -165,6 +197,16 @@ export function ProjectsList({
         isPending={create.isPending}
         error={create.error?.message}
       />
+
+      {/* Delete confirmation dialog */}
+      {pendingDelete && (
+        <ConfirmDeleteDialog
+          projectName={pendingDelete.name}
+          isPending={del.isPending}
+          onConfirm={() => del.mutate({ id: pendingDelete.id })}
+          onCancel={() => setPendingDelete(null)}
+        />
+      )}
     </div>
   );
 }
@@ -191,7 +233,7 @@ function CreateProjectDialog({
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
-        <h3 className="mb-5 text-base font-semibold text-zinc-900 dark:text-zinc-50">
+        <h3 className="mb-5 text-[15px] font-semibold text-foreground">
           New Project
         </h3>
         <form
@@ -207,7 +249,7 @@ function CreateProjectDialog({
           className="space-y-4"
         >
           {error && (
-            <p className="rounded-md bg-red-50 dark:bg-red-900/20 px-3 py-2 text-xs text-red-600 dark:text-red-400">
+            <p className="rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
               {error}
             </p>
           )}
@@ -250,11 +292,11 @@ function CreateProjectDialog({
 
 function EmptyState({ onNew }: { onNew: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center py-24 text-center bg-zinc-50 border border-border rounded-2xl">
-      <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+    <div className="flex flex-col items-center justify-center py-24 text-center border border-dashed border-border rounded-lg bg-card">
+      <h3 className="text-[13px] font-semibold text-foreground">
         No projects yet
       </h3>
-      <p className="mt-1 text-sm text-zinc-500 max-w-xs">
+      <p className="mt-1 text-[12px] text-muted-foreground max-w-xs">
         Create a project to start tracking events and page views with the Ingest
         API.
       </p>
@@ -271,11 +313,11 @@ function ProjectSkeleton() {
       {[1, 2, 3].map((i) => (
         <div
           key={i}
-          className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-5 space-y-3 animate-pulse"
+          className="rounded-lg border border-border p-4 space-y-3 animate-pulse"
         >
-          <div className="h-4 w-2/3 rounded bg-zinc-100 dark:bg-zinc-800" />
-          <div className="h-3 w-1/3 rounded bg-zinc-100 dark:bg-zinc-800" />
-          <div className="h-3 w-full rounded bg-zinc-100 dark:bg-zinc-800 mt-4" />
+          <div className="h-4 w-2/3 rounded bg-muted" />
+          <div className="h-3 w-1/3 rounded bg-muted" />
+          <div className="h-3 w-full rounded bg-muted mt-4" />
         </div>
       ))}
     </div>

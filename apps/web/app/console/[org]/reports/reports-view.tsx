@@ -33,13 +33,18 @@ export function ReportsView({ organizationId }: { organizationId: string }) {
     enabled: !!projectId,
   });
 
+  const selectCls =
+    "rounded-md border border-border bg-background px-3 py-1.5 text-[13px] text-foreground focus:outline-none focus:ring-2 focus:ring-ring";
+
   return (
     <div className="flex-1 p-6 space-y-6">
       {/* Toolbar */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex flex-col gap-0.5">
+          <label htmlFor="report-project" className="sr-only">Project</label>
           <select
-            className="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            id="report-project"
+            className={selectCls}
             value={projectId}
             onChange={(e) => setSelectedProjectId(e.target.value)}
           >
@@ -50,8 +55,12 @@ export function ReportsView({ organizationId }: { organizationId: string }) {
               </option>
             ))}
           </select>
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <label htmlFor="report-days" className="sr-only">Time range</label>
           <select
-            className="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            id="report-days"
+            className={selectCls}
             value={days}
             onChange={(e) => setDays(Number(e.target.value))}
           >
@@ -66,7 +75,7 @@ export function ReportsView({ organizationId }: { organizationId: string }) {
 
       {!projectId ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <p className="text-sm text-zinc-400">
+          <p className="text-[13px] text-muted-foreground">
             Create a project first to view reports.
           </p>
         </div>
@@ -84,14 +93,8 @@ export function ReportsView({ organizationId }: { organizationId: string }) {
               value={overview?.pageViews}
               change={overview?.pageViewsChange}
             />
-            <KPICard
-              label="Top Page"
-              value={overview?.topPages[0]?.url ?? "—"}
-            />
-            <KPICard
-              label="Top Event"
-              value={overview?.topEvents[0]?.name ?? "—"}
-            />
+            <KPICard label="Top Page" value={overview?.topPages[0]?.url ?? "—"} />
+            <KPICard label="Top Event" value={overview?.topEvents[0]?.name ?? "—"} />
           </div>
 
           {/* Charts */}
@@ -99,12 +102,12 @@ export function ReportsView({ organizationId }: { organizationId: string }) {
             <BarChart
               title={`Events per day (${days}d)`}
               data={eventSeries ?? []}
-              color="#6366f1"
+              color="#0070f3"
             />
             <BarChart
               title={`Page views per day (${days}d)`}
               data={pvSeries ?? []}
-              color="#10b981"
+              color="#7928ca"
             />
           </div>
 
@@ -118,7 +121,7 @@ export function ReportsView({ organizationId }: { organizationId: string }) {
                   value: e.count,
                 })) ?? []
               }
-              color="#6366f1"
+              color="#0070f3"
             />
             <TopList
               title="Top Pages"
@@ -128,7 +131,7 @@ export function ReportsView({ organizationId }: { organizationId: string }) {
                   value: p.count,
                 })) ?? []
               }
-              color="#10b981"
+              color="#7928ca"
             />
           </div>
         </>
@@ -151,12 +154,12 @@ function KPICard({
   return (
     <Card>
       <CardContent className="pt-5">
-        <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
           {label}
         </p>
-        <p className="mt-1.5 text-2xl font-bold tabular-nums text-zinc-900 dark:text-zinc-50 truncate">
+        <p className="mt-1.5 text-[22px] font-bold tabular-nums text-foreground truncate leading-none">
           {value === undefined ? (
-            <span className="inline-block h-7 w-16 rounded bg-zinc-100 dark:bg-zinc-800 animate-pulse" />
+            <span className="inline-block h-7 w-16 rounded bg-muted animate-pulse" />
           ) : typeof value === "number" ? (
             value.toLocaleString()
           ) : (
@@ -165,7 +168,7 @@ function KPICard({
         </p>
         {change !== undefined && change !== 0 && (
           <p
-            className={`mt-0.5 text-xs ${change > 0 ? "text-emerald-500" : "text-red-500"}`}
+            className={`mt-1 text-[11px] font-medium ${change > 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}`}
           >
             {change > 0 ? "+" : ""}
             {change.toFixed(0)}% vs prev period
@@ -176,7 +179,7 @@ function KPICard({
   );
 }
 
-// ─── Bar Chart (CSS-only, no dep) ─────────────────────────────────────────────
+// ─── Bar Chart ────────────────────────────────────────────────────────────────
 
 function BarChart({
   title,
@@ -192,13 +195,11 @@ function BarChart({
   return (
     <Card>
       <CardHeader>
-        <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-          {title}
-        </span>
+        <span className="text-[13px] font-semibold text-foreground">{title}</span>
       </CardHeader>
       <CardContent>
         {data.length === 0 ? (
-          <p className="text-sm text-zinc-400 py-8 text-center">No data</p>
+          <p className="text-[13px] text-muted-foreground py-8 text-center">No data</p>
         ) : (
           <div className="flex items-end gap-1 h-32">
             {data.map((d) => (
@@ -210,13 +211,12 @@ function BarChart({
                   className="relative w-full rounded-sm transition-all hover:opacity-80"
                   style={{
                     height: `${Math.max((d.count / max) * 100, d.count > 0 ? 4 : 2)}%`,
-                    backgroundColor: d.count > 0 ? color : "#e4e4e7",
+                    backgroundColor: d.count > 0 ? color : "var(--border)",
                   }}
                   title={`${d.date}: ${d.count}`}
                 />
-                {/* x-axis label every ~4 */}
                 {data.indexOf(d) % Math.ceil(data.length / 7) === 0 && (
-                  <span className="text-[10px] text-zinc-400 rotate-45 origin-left whitespace-nowrap">
+                  <span className="text-[10px] text-muted-foreground/50 rotate-45 origin-left whitespace-nowrap">
                     {d.date.slice(5)}
                   </span>
                 )}
@@ -244,23 +244,19 @@ function TopList({
   return (
     <Card>
       <CardHeader>
-        <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-          {title}
-        </span>
+        <span className="text-[13px] font-semibold text-foreground">{title}</span>
       </CardHeader>
       {rows.length === 0 ? (
         <CardContent>
-          <p className="text-sm text-zinc-400">No data yet</p>
+          <p className="text-[13px] text-muted-foreground">No data yet</p>
         </CardContent>
       ) : (
-        <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+        <div className="divide-y divide-border">
           {rows.map((r) => (
             <div key={r.label} className="flex items-center gap-3 px-5 py-2.5">
               <div className="flex-1 min-w-0">
-                <p className="truncate text-xs text-zinc-700 dark:text-zinc-300">
-                  {r.label}
-                </p>
-                <div className="mt-1 h-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800">
+                <p className="truncate text-[12px] text-foreground">{r.label}</p>
+                <div className="mt-1 h-1.5 rounded-full bg-muted">
                   <div
                     className="h-full rounded-full transition-all"
                     style={{
@@ -270,7 +266,7 @@ function TopList({
                   />
                 </div>
               </div>
-              <span className="shrink-0 text-xs font-semibold tabular-nums text-zinc-500">
+              <span className="shrink-0 text-[12px] font-semibold tabular-nums text-muted-foreground">
                 {r.value.toLocaleString()}
               </span>
             </div>
