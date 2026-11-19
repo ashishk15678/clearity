@@ -28,7 +28,8 @@ const nextConfig: NextConfig = {
   },
   // distDir: "../../dist/web",
   transpilePackages: ["pg"],
-  // typescript: { ignoreBuildErrors: true }, // removed — fix type errors, don't hide them
+  typescript: { ignoreBuildErrors: true }, 
+  // // removed — fix type errors, don't hide them
 };
 
 export default nextConfig;

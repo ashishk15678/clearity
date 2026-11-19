@@ -36,6 +36,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         figtree.variable,
       )}
     >
+      <head>
+        {/* Preconnect to auth and Neon pooler so first round-trip is cheaper */}
+        <link rel="preconnect" href={process.env.NEXT_PUBLIC_BETTER_AUTH_URL ?? ""} />
+        <link rel="preconnect" href="https://ep-polished-sky-b449ol3r-pooler.c-6.us-east-2.aws.neon.tech" crossOrigin="anonymous" />
+      </head>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <body className="min-h-full flex flex-col">
           <TRPCReactProvider>{children}</TRPCReactProvider>
