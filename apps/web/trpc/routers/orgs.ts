@@ -86,6 +86,62 @@ export const OrgRouter = createTRPCRouter({
       });
     }),
 
+  /** Current user's membership record for a given org slug. */
+  membership: protectedProcedure
+    .input(z.object({ orgSlug: z.string() }))
+    .query(async ({ ctx, input }) => {
+      return prisma.organizationMember.findFirst({
+        where: {
+          userId: ctx.user.id,
+          organization: { slug: input.orgSlug },
+        },
+        include: { organization: true },
+      });
+    }),
+
+  /**
+   * Aggregate overview stats for an org.
+   * Replaces the 5 direct Prisma calls that were on the overview server page.
+   */
+  orgOverview: protectedProcedure
+    .input(z.object({ orgSlug: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const org = await prisma.organization.findUniqueOrThrow({
+        where: { slug: input.orgSlug },
+      });
+      await requireOrgMember(ctx.user.id, org.id);
+
+      const [projects, totalEvents, totalPageViews, totalErrors, totalSessions] =
+        await Promise.all([
+          prisma.project.findMany({
+            where: { organizationId: org.id },
+            orderBy: { updatedAt: "desc" },
+            take: 8,
+            include: { _count: { select: { events: true, pageViews: true } } },
+          }),
+          prisma.event.count({
+            where: { project: { organizationId: org.id } },
+          }),
+          prisma.pageView.count({
+            where: { project: { organizationId: org.id } },
+          }),
+          prisma.errorGroup.count({
+            where: { project: { organizationId: org.id }, status: "unresolved" },
+          }),
+          prisma.sessionRecording.count({
+            where: { project: { organizationId: org.id } },
+          }),
+        ]);
+
+      return {
+        projects,
+        totalEvents,
+        totalPageViews,
+        totalErrors,
+        totalSessions,
+      };
+    }),
+
   update: protectedProcedure
     .input(
       z.object({
@@ -286,7 +342,7 @@ export const OrgRouter = createTRPCRouter({
           `You've been invited to ${invite.organization.name}`,
           `${ctx.user.name ?? ctx.user.email} invited you as ${input.role}. Accept to join.`,
           `/invite/${invite.token}`,
-        ).catch(() => {}); // non-fatal
+        ).catch(() => { }); // non-fatal
       }
       return { invite, inviteUrl: `/invite/${invite.token}` };
     }),
@@ -367,7 +423,7 @@ export const OrgRouter = createTRPCRouter({
             `${joinerName} joined ${invite.organization.name}`,
             `${joinerName} accepted their invite and joined as ${invite.role}.`,
             `/console/${invite.organization.slug}/teams`,
-          ).catch(() => {}),
+          ).catch(() => { }),
         ),
       );
 

@@ -34,7 +34,7 @@ type ProjectWithCount = {
   slug: string;
   description: string | null;
   url: string | null;
-  createdAt: Date;
+  createdAt: Date | string; // tRPC serialises Date → string over the wire
   organizationId: string;
   organization?: { id: string; name: string; slug: string } | null;
   _count: {

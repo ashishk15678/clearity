@@ -40,7 +40,7 @@ function ConfirmDeleteDialog({
           </Button>
           <Button
             type="button"
-            variant="destructive"
+            variant="danger"
             onClick={onConfirm}
             disabled={isPending}
           >
