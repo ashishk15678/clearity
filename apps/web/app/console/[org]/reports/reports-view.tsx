@@ -3,13 +3,10 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 export function ReportsView({ organizationId }: { organizationId: string }) {
   const trpc = useTRPC();
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
-    null,
-  );
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [days, setDays] = useState(14);
 
   const { data: projects } = useQuery(
@@ -22,25 +19,24 @@ export function ReportsView({ organizationId }: { organizationId: string }) {
     ...trpc.reports.overview.queryOptions({ projectId, days }),
     enabled: !!projectId,
   });
-
   const { data: eventSeries } = useQuery({
     ...trpc.events.timeSeries.queryOptions({ projectId, days }),
     enabled: !!projectId,
   });
-
   const { data: pvSeries } = useQuery({
     ...trpc.reports.pageViewTimeSeries.queryOptions({ projectId, days }),
     enabled: !!projectId,
   });
 
   const selectCls =
-    "rounded-md border border-border bg-background px-3 py-1.5 text-[13px] text-foreground focus:outline-none focus:ring-2 focus:ring-ring";
+    "h-9 rounded-lg border border-border bg-card px-3 text-[13px] text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-all cursor-pointer";
 
   return (
-    <div className="flex-1 p-6 space-y-6">
+    <div className="flex-1 p-6 max-w-5xl space-y-8">
+
       {/* Toolbar */}
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex flex-col gap-0.5">
+        <div>
           <label htmlFor="report-project" className="sr-only">Project</label>
           <select
             id="report-project"
@@ -50,13 +46,11 @@ export function ReportsView({ organizationId }: { organizationId: string }) {
           >
             {!projects?.length && <option value="">— No projects —</option>}
             {projects?.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
+              <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
         </div>
-        <div className="flex flex-col gap-0.5">
+        <div>
           <label htmlFor="report-days" className="sr-only">Time range</label>
           <select
             id="report-days"
@@ -65,74 +59,42 @@ export function ReportsView({ organizationId }: { organizationId: string }) {
             onChange={(e) => setDays(Number(e.target.value))}
           >
             {[7, 14, 30, 90].map((d) => (
-              <option key={d} value={d}>
-                Last {d} days
-              </option>
+              <option key={d} value={d}>Last {d} days</option>
             ))}
           </select>
         </div>
       </div>
 
       {!projectId ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center">
-          <p className="text-[13px] text-muted-foreground">
-            Create a project first to view reports.
-          </p>
+        <div className="flex flex-col items-center justify-center py-24 text-center rounded-xl border border-dashed border-border">
+          <div className="mb-3 h-10 w-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+            <svg className="h-5 w-5 text-primary" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+            </svg>
+          </div>
+          <p className="text-[14px] font-semibold text-foreground">No data yet</p>
+          <p className="mt-1 text-[13px] text-muted-foreground">Create a project first to view reports.</p>
         </div>
       ) : (
         <>
-          {/* KPI row */}
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <KPICard
-              label="Events"
-              value={overview?.events}
-              change={overview?.eventsChange}
-            />
-            <KPICard
-              label="Page Views"
-              value={overview?.pageViews}
-              change={overview?.pageViewsChange}
-            />
+          {/* KPI strip */}
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <KPICard label="Events" value={overview?.events} change={overview?.eventsChange} />
+            <KPICard label="Page Views" value={overview?.pageViews} change={overview?.pageViewsChange} />
             <KPICard label="Top Page" value={overview?.topPages[0]?.url ?? "—"} />
             <KPICard label="Top Event" value={overview?.topEvents[0]?.name ?? "—"} />
           </div>
 
           {/* Charts */}
           <div className="grid gap-4 lg:grid-cols-2">
-            <BarChart
-              title={`Events per day (${days}d)`}
-              data={eventSeries ?? []}
-              color="#0070f3"
-            />
-            <BarChart
-              title={`Page views per day (${days}d)`}
-              data={pvSeries ?? []}
-              color="#7928ca"
-            />
+            <BarChart title={`Events — last ${days}d`} data={eventSeries ?? []} color="var(--color-primary)" />
+            <BarChart title={`Page views — last ${days}d`} data={pvSeries ?? []} color="#2563eb" />
           </div>
 
-          {/* Top tables */}
+          {/* Top lists */}
           <div className="grid gap-4 lg:grid-cols-2">
-            <TopList
-              title="Top Events"
-              rows={
-                overview?.topEvents.map((e) => ({
-                  label: e.name,
-                  value: e.count,
-                })) ?? []
-              }
-              color="#0070f3"
-            />
-            <TopList
-              title="Top Pages"
-              rows={
-                overview?.topPages.map((p) => ({
-                  label: p.url,
-                  value: p.count,
-                })) ?? []
-              }
-              color="#7928ca"
-            />
+            <TopList title="Top events" rows={overview?.topEvents.map((e) => ({ label: e.name, value: e.count })) ?? []} color="var(--color-primary)" />
+            <TopList title="Top pages" rows={overview?.topPages.map((p) => ({ label: p.url, value: p.count })) ?? []} color="#2563eb" />
           </div>
         </>
       )}
@@ -142,127 +104,99 @@ export function ReportsView({ organizationId }: { organizationId: string }) {
 
 // ─── KPI Card ─────────────────────────────────────────────────────────────────
 
-function KPICard({
-  label,
-  value,
-  change,
-}: {
+function KPICard({ label, value, change }: {
   label: string;
   value?: number | string;
   change?: number;
 }) {
   return (
-    <Card>
-      <CardContent className="pt-5">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-          {label}
-        </p>
-        <p className="mt-1.5 text-[22px] font-bold tabular-nums text-foreground truncate leading-none">
-          {value === undefined ? (
-            <span className="inline-block h-7 w-16 rounded bg-muted animate-pulse" />
-          ) : typeof value === "number" ? (
-            value.toLocaleString()
-          ) : (
-            value
-          )}
-        </p>
-        {change !== undefined && change !== 0 && (
-          <p
-            className={`mt-1 text-[11px] font-medium ${change > 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}`}
-          >
-            {change > 0 ? "+" : ""}
-            {change.toFixed(0)}% vs prev period
-          </p>
+    <div className="rounded-xl border border-border bg-card p-4 space-y-1.5">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+        {label}
+      </p>
+      <p className="text-2xl font-bold tabular-nums text-foreground leading-none truncate">
+        {value === undefined ? (
+          <span className="inline-block h-7 w-16 rounded-md bg-muted animate-pulse" />
+        ) : typeof value === "number" ? (
+          value.toLocaleString()
+        ) : (
+          value
         )}
-      </CardContent>
-    </Card>
+      </p>
+      {change !== undefined && change !== 0 && (
+        <p className={`text-[11px] font-medium flex items-center gap-1 ${change > 0 ? "text-emerald-500" : "text-destructive"}`}>
+          <span>{change > 0 ? "↑" : "↓"}{Math.abs(change).toFixed(0)}%</span>
+          <span className="text-muted-foreground font-normal">vs prev period</span>
+        </p>
+      )}
+    </div>
   );
 }
 
 // ─── Bar Chart ────────────────────────────────────────────────────────────────
 
-function BarChart({
-  title,
-  data,
-  color,
-}: {
+function BarChart({ title, data, color }: {
   title: string;
   data: { date: string; count: number }[];
   color: string;
 }) {
   const max = Math.max(...data.map((d) => d.count), 1);
-
   return (
-    <Card>
-      <CardHeader>
-        <span className="text-[13px] font-semibold text-foreground">{title}</span>
-      </CardHeader>
-      <CardContent>
-        {data.length === 0 ? (
-          <p className="text-[13px] text-muted-foreground py-8 text-center">No data</p>
-        ) : (
-          <div className="flex items-end gap-1 h-32">
-            {data.map((d) => (
+    <div className="rounded-xl border border-border bg-card p-4">
+      <p className="text-[13px] font-semibold text-foreground mb-4">{title}</p>
+      {data.length === 0 ? (
+        <p className="text-[13px] text-muted-foreground py-6 text-center">No data</p>
+      ) : (
+        <div className="flex items-end gap-0.5 h-28">
+          {data.map((d, i) => (
+            <div key={d.date} className="group flex-1 flex flex-col items-center justify-end gap-1">
               <div
-                key={d.date}
-                className="group flex-1 flex flex-col items-center justify-end gap-1"
-              >
-                <div
-                  className="relative w-full rounded-sm transition-all hover:opacity-80"
-                  style={{
-                    height: `${Math.max((d.count / max) * 100, d.count > 0 ? 4 : 2)}%`,
-                    backgroundColor: d.count > 0 ? color : "var(--border)",
-                  }}
-                  title={`${d.date}: ${d.count}`}
-                />
-                {data.indexOf(d) % Math.ceil(data.length / 7) === 0 && (
-                  <span className="text-[10px] text-muted-foreground/50 rotate-45 origin-left whitespace-nowrap">
-                    {d.date.slice(5)}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+                className="relative w-full rounded-sm transition-all group-hover:opacity-70"
+                style={{
+                  height: `${Math.max((d.count / max) * 100, d.count > 0 ? 6 : 2)}%`,
+                  backgroundColor: d.count > 0 ? color : "var(--color-border)",
+                  opacity: d.count > 0 ? 0.85 : 0.3,
+                }}
+                title={`${d.date}: ${d.count}`}
+              />
+              {i % Math.ceil(data.length / 7) === 0 && (
+                <span className="text-[9px] text-muted-foreground/50 whitespace-nowrap">
+                  {d.date.slice(5)}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
-// ─── Top list ─────────────────────────────────────────────────────────────────
+// ─── Top List ─────────────────────────────────────────────────────────────────
 
-function TopList({
-  title,
-  rows,
-  color,
-}: {
+function TopList({ title, rows, color }: {
   title: string;
   rows: { label: string; value: number }[];
   color: string;
 }) {
   const max = Math.max(...rows.map((r) => r.value), 1);
   return (
-    <Card>
-      <CardHeader>
-        <span className="text-[13px] font-semibold text-foreground">{title}</span>
-      </CardHeader>
+    <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <div className="px-4 py-3 border-b border-border">
+        <p className="text-[13px] font-semibold text-foreground">{title}</p>
+      </div>
       {rows.length === 0 ? (
-        <CardContent>
-          <p className="text-[13px] text-muted-foreground">No data yet</p>
-        </CardContent>
+        <p className="text-[13px] text-muted-foreground px-4 py-6">No data yet</p>
       ) : (
-        <div className="divide-y divide-border">
+        <div>
           {rows.map((r) => (
-            <div key={r.label} className="flex items-center gap-3 px-5 py-2.5">
-              <div className="flex-1 min-w-0">
-                <p className="truncate text-[12px] text-foreground">{r.label}</p>
-                <div className="mt-1 h-1.5 rounded-full bg-muted">
+            <div key={r.label} className="flex items-center gap-3 px-4 py-2.5 border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+              <div className="flex-1 min-w-0 space-y-1">
+                <p className="truncate text-[12px] text-foreground font-medium">{r.label}</p>
+                <div className="h-1 rounded-full bg-muted overflow-hidden">
                   <div
-                    className="h-full rounded-full transition-all"
-                    style={{
-                      width: `${(r.value / max) * 100}%`,
-                      backgroundColor: color,
-                    }}
+                    className="h-full rounded-full"
+                    style={{ width: `${(r.value / max) * 100}%`, backgroundColor: color, opacity: 0.7 }}
                   />
                 </div>
               </div>
@@ -273,6 +207,6 @@ function TopList({
           ))}
         </div>
       )}
-    </Card>
+    </div>
   );
 }

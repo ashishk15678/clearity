@@ -1,5 +1,4 @@
 import { Topbar } from "@/components/dashboard/topbar";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 export const metadata = { title: "Billing · Clarity" };
@@ -8,26 +7,32 @@ const PLANS = [
   {
     name: "Hobby",
     price: "Free",
+    unit: "forever",
     events: "100K",
     pageViews: "500K",
     projects: "3",
     current: true,
+    cta: null,
   },
   {
     name: "Pro",
-    price: "$19/mo",
+    price: "$19",
+    unit: "/ month",
     events: "5M",
     pageViews: "25M",
     projects: "Unlimited",
     current: false,
+    cta: "Upgrade to Pro",
   },
   {
     name: "Enterprise",
     price: "Custom",
+    unit: "",
     events: "Unlimited",
     pageViews: "Unlimited",
     projects: "Unlimited",
     current: false,
+    cta: "Contact sales",
   },
 ];
 
@@ -35,103 +40,91 @@ export default function BillingPage() {
   return (
     <div className="flex flex-col">
       <Topbar title="Billing" />
-      <div className="flex-1 p-6 space-y-8 max-w-4xl">
+      <div className="flex-1 p-6 max-w-4xl space-y-8">
 
         {/* Current plan */}
         <div>
-          <h2 className="text-[13px] font-semibold text-foreground mb-3">
-            Current Plan
-          </h2>
-          <Card className="max-w-lg">
-            <CardContent className="pt-5 flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[15px] font-bold text-foreground">
-                    Hobby
-                  </span>
-                  <Badge variant="success">Active</Badge>
-                </div>
-                <p className="mt-1 text-[12px] text-muted-foreground">
-                  Free forever — no credit card required.
-                </p>
+          <SectionTitle>Current plan</SectionTitle>
+          <div className="rounded-xl border border-border bg-card p-5 flex items-center justify-between gap-4 max-w-lg">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-[16px] font-bold text-foreground">Hobby</span>
+                <Badge variant="success">Active</Badge>
               </div>
-              <span className="text-[22px] font-bold text-foreground tabular-nums">
-                $0
-              </span>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Usage */}
-        <div>
-          <h2 className="text-[13px] font-semibold text-foreground mb-3">
-            Usage This Cycle
-          </h2>
-          <div className="grid gap-3 sm:grid-cols-3 max-w-2xl">
-            <UsageBar label="Events" used={0} limit={100_000} />
-            <UsageBar label="Page Views" used={0} limit={500_000} />
-            <UsageBar label="Projects" used={0} limit={3} />
+              <p className="text-[12px] text-muted-foreground">Free forever — no credit card required.</p>
+            </div>
+            <span className="text-3xl font-bold text-foreground tabular-nums">$0</span>
           </div>
         </div>
 
-        {/* Plans */}
+        {/* Usage bars */}
         <div>
-          <h2 className="text-[13px] font-semibold text-foreground mb-3">
-            Plans
-          </h2>
-          <div className="grid gap-3 sm:grid-cols-3">
-            {PLANS.map((plan) => (
-              <Card
-                key={plan.name}
-                className={
-                  plan.current
-                    ? "border-primary/40 ring-1 ring-primary/30"
-                    : ""
-                }
-              >
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[13px] font-semibold text-foreground">
-                      {plan.name}
-                    </span>
-                    {plan.current && <Badge variant="default">Current</Badge>}
-                  </div>
-                  <p className="mt-1 text-[22px] font-bold text-foreground tabular-nums">
-                    {plan.price}
+          <SectionTitle>Usage this cycle</SectionTitle>
+          <div className="grid gap-3 sm:grid-cols-3 max-w-2xl">
+            <UsageBar label="Events" used={0} limit={100_000} limitLabel="100K" />
+            <UsageBar label="Page Views" used={0} limit={500_000} limitLabel="500K" />
+            <UsageBar label="Projects" used={0} limit={3} limitLabel="3" />
+          </div>
+        </div>
+
+        {/* Plan comparison table */}
+        <div>
+          <SectionTitle>Plans</SectionTitle>
+          <div className="rounded-xl border border-border overflow-hidden">
+            {/* Header */}
+            <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr] border-b border-border">
+              <div className="px-5 py-3 bg-muted/40" />
+              {PLANS.map((p) => (
+                <div
+                  key={p.name}
+                  className={`px-4 py-3 text-center border-l border-border ${p.current ? "bg-primary/5" : "bg-muted/40"}`}
+                >
+                  <p className="text-[12px] font-semibold text-foreground">{p.name}</p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    <span className="text-[15px] font-bold text-foreground">{p.price}</span>
+                    {p.unit && <span className="ml-0.5">{p.unit}</span>}
                   </p>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2 text-[12px] text-muted-foreground">
-                    <li className="flex justify-between">
-                      <span>Events / mo</span>
-                      <span className="font-semibold text-foreground">
-                        {plan.events}
-                      </span>
-                    </li>
-                    <li className="flex justify-between">
-                      <span>Page views / mo</span>
-                      <span className="font-semibold text-foreground">
-                        {plan.pageViews}
-                      </span>
-                    </li>
-                    <li className="flex justify-between">
-                      <span>Projects</span>
-                      <span className="font-semibold text-foreground">
-                        {plan.projects}
-                      </span>
-                    </li>
-                  </ul>
-                  {!plan.current && (
+                </div>
+              ))}
+            </div>
+
+            {/* Rows */}
+            {[
+              { label: "Events / mo", key: "events" as const },
+              { label: "Page views / mo", key: "pageViews" as const },
+              { label: "Projects", key: "projects" as const },
+            ].map((row) => (
+              <div key={row.label} className="grid grid-cols-[1.5fr_1fr_1fr_1fr] border-b border-border last:border-0">
+                <div className="px-5 py-3 text-[12px] font-medium text-muted-foreground bg-card">{row.label}</div>
+                {PLANS.map((p) => (
+                  <div
+                    key={p.name}
+                    className={`px-4 py-3 text-center text-[13px] font-semibold tabular-nums text-foreground border-l border-border ${p.current ? "bg-primary/5" : "bg-card"}`}
+                  >
+                    {p[row.key]}
+                  </div>
+                ))}
+              </div>
+            ))}
+
+            {/* CTA row */}
+            <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr] bg-muted/20">
+              <div className="px-5 py-3 bg-card" />
+              {PLANS.map((p) => (
+                <div key={p.name} className={`px-4 py-3 border-l border-border flex items-center justify-center ${p.current ? "bg-primary/5" : "bg-card"}`}>
+                  {p.current ? (
+                    <span className="text-[11px] font-semibold text-primary">Current</span>
+                  ) : (
                     <button
                       disabled
-                      className="mt-4 w-full rounded-md bg-foreground px-3 py-1.5 text-[12px] font-medium text-background hover:opacity-90 disabled:opacity-50 transition-opacity"
+                      className="rounded-lg bg-primary/10 border border-primary/30 px-3 py-1.5 text-[12px] font-semibold text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
                     >
-                      {plan.name === "Enterprise" ? "Contact us" : "Upgrade"}
+                      {p.cta}
                     </button>
                   )}
-                </CardContent>
-              </Card>
-            ))}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -140,35 +133,36 @@ export default function BillingPage() {
   );
 }
 
-function UsageBar({
-  label,
-  used,
-  limit,
-}: {
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="text-[12px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+      {children}
+    </h2>
+  );
+}
+
+function UsageBar({ label, used, limit, limitLabel }: {
   label: string;
   used: number;
   limit: number;
+  limitLabel: string;
 }) {
   const pct = Math.min((used / limit) * 100, 100);
   return (
-    <Card>
-      <CardContent className="pt-4">
-        <div className="flex justify-between text-[11px] mb-1.5">
-          <span className="text-muted-foreground font-medium">{label}</span>
-          <span className="font-semibold text-foreground tabular-nums">
-            {used.toLocaleString()} / {limit.toLocaleString()}
-          </span>
-        </div>
-        <div className="h-1.5 rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-primary transition-all"
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-        <p className="mt-1.5 text-[11px] text-muted-foreground">
-          {pct.toFixed(0)}% used
-        </p>
-      </CardContent>
-    </Card>
+    <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+      <div className="flex items-center justify-between text-[12px]">
+        <span className="font-medium text-foreground">{label}</span>
+        <span className="text-muted-foreground tabular-nums font-mono">
+          {used.toLocaleString()} / {limitLabel}
+        </span>
+      </div>
+      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+        <div
+          className="h-full rounded-full bg-primary transition-all"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <p className="text-[11px] text-muted-foreground">{pct.toFixed(0)}% used</p>
+    </div>
   );
 }

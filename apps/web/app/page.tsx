@@ -593,6 +593,7 @@ const API_KEY = process.env.NEXT_PUBLIC_CLARITY_API_KEY ?? "";
 const PROJECT_ID = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID ?? "";
 
 export default function RootPage() {
+  
   const scriptLoaded = useRef(false);
   const ingestUrl = process.env.NEXT_PUBLIC_INGEST_URL;
 
