@@ -1,18 +1,21 @@
-use axum::{Json, extract::State};
-use serde_json::{Value, json};
-use sqlx::{PgPool};
+use axum::{extract::State, Json};
+use serde_json::{json, Value};
 
-/// GET /health
-/// Returns 200 with service status and a DB ping.
-pub async fn health(State(pool): State<PgPool>) -> Json<Value> {
-    let db_ok = sqlx::query("SELECT 1")
-        .fetch_one(&pool)
+use crate::AppState;
+
+pub async fn health(State(state): State<AppState>) -> Json<Value> {
+    let db_ok = state
+        .conn()
         .await
-        .is_ok();
+        .map(|c| {
+            drop(c);
+            true
+        })
+        .unwrap_or(false);
 
     Json(json!({
-        "status": if db_ok { "ok" } else { "degraded" },
+        "status":  if db_ok { "ok" } else { "degraded" },
         "service": "ingest",
-        "db": if db_ok { "connected" } else { "error" },
+        "db":      if db_ok { "connected" } else { "error" },
     }))
 }

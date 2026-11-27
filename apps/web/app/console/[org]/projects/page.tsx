@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { Topbar } from "@/components/dashboard/topbar";
 import { ProjectsList } from "./projects-list";
+import { trpc, getQueryClient } from "@/trpc/server";
 
 export const metadata = { title: "Projects · Clarity" };
 
@@ -16,15 +16,11 @@ export default async function ProjectsPage({
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) notFound();
 
-  // Resolve the real org DB id from the slug, and verify membership
-  const membership = await prisma.organizationMember.findFirst({
-    where: {
-      userId: session.user.id,
-      organization: { slug: orgSlug },
-    },
-    include: { organization: true },
-  });
-
+  // org.membership is already prefetched by the layout — this is a cache hit.
+  const qc = getQueryClient();
+  const membership = await qc.fetchQuery(
+    trpc.org.membership.queryOptions({ orgSlug }),
+  );
   if (!membership) notFound();
 
   return (

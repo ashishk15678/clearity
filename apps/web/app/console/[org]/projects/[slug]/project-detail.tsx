@@ -1950,7 +1950,8 @@ function ApiKeysTab({ projectId }: { projectId: string }) {
   const trpc = useTRPC();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [newKey, setNewKey] = useState<string | null>(null);
+  // Full token shown exactly once after creation; null at all other times.
+  const [newToken, setNewToken] = useState<string | null>(null);
 
   const { data: keys, isPending } = useQuery(
     trpc.projects.listApiKeys.queryOptions({ projectId }),
@@ -1962,7 +1963,8 @@ function ApiKeysTab({ projectId }: { projectId: string }) {
         qc.invalidateQueries({
           queryKey: trpc.projects.listApiKeys.queryKey({ projectId }),
         });
-        setNewKey(data.key);
+        // data.token is the full HMAC token shown once and never stored.
+        setNewToken(data.token);
         setOpen(false);
       },
     }),
@@ -1979,32 +1981,49 @@ function ApiKeysTab({ projectId }: { projectId: string }) {
 
   return (
     <div className="space-y-4">
-      {/* New key banner */}
-      {newKey && (
-        <div className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-4 space-y-2">
-          <p className="text-sm font-semibold text-green-800 dark:text-green-300">
-            Your new API key — copy it now, it won&apos;t be shown again.
-          </p>
+
+      {/* ── One-time reveal banner ───────────────────────────────────────── */}
+      {newToken && (
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 space-y-3">
+          <div className="flex items-start gap-2.5">
+            <svg className="h-4 w-4 mt-0.5 shrink-0 text-emerald-500" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            <div>
+              <p className="text-[13px] font-semibold text-emerald-400">
+                Copy your API token now — it won&apos;t be shown again.
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                This token rotates every 5 minutes. We store only your secret hash — the token itself is never persisted.
+              </p>
+            </div>
+          </div>
           <div className="flex items-center gap-2">
-            <code className="flex-1 rounded-md bg-background border border-border px-3 py-2 text-xs font-mono text-foreground break-all">
-              {newKey}
+            <code className="flex-1 min-w-0 rounded-lg bg-background border border-border px-3 py-2 text-[12px] font-mono text-foreground break-all select-all">
+              {newToken}
             </code>
             <button
-              onClick={() => navigator.clipboard.writeText(newKey)}
-              className="shrink-0 rounded-md border border-border px-3 py-2 text-xs font-medium hover:bg-muted transition-colors"
+              onClick={() => navigator.clipboard.writeText(newToken)}
+              className="shrink-0 rounded-lg border border-border px-3 py-2 text-[12px] font-medium hover:bg-muted transition-colors"
+              aria-label="Copy token to clipboard"
             >
               Copy
             </button>
           </div>
+          <div className="rounded-lg bg-muted/50 border border-border px-3 py-2 text-[11px] text-muted-foreground space-y-1">
+            <p className="font-medium text-foreground">How it works</p>
+            <p>The SDK recomputes a new HMAC token every 5 minutes using your secret. Ingest verifies it without storing the full token — expired tokens are automatically rejected.</p>
+          </div>
           <button
-            onClick={() => setNewKey(null)}
-            className="text-xs text-green-700 dark:text-green-400 hover:underline"
+            onClick={() => setNewToken(null)}
+            className="text-[12px] text-emerald-400 hover:text-emerald-300 transition-colors"
           >
             I&apos;ve saved it ✓
           </button>
         </div>
       )}
 
+      {/* ── Key table ────────────────────────────────────────────────────── */}
       <Panel>
         <PanelHeader>
           <span className="text-[13px] font-semibold text-foreground">
@@ -2018,15 +2037,18 @@ function ApiKeysTab({ projectId }: { projectId: string }) {
         {isPending ? (
           <LoadingRows />
         ) : !keys?.length ? (
-          <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-            No API keys yet. Create one to start sending data.
+          <div className="px-4 py-10 text-center space-y-1">
+            <p className="text-[13px] font-medium text-foreground">No API keys yet</p>
+            <p className="text-[12px] text-muted-foreground">
+              Create one to start sending tracking data.
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
-                  {["Name", "Prefix", "Last used", "Created", ""].map((h) => (
+                  {["Name", "Key ID", "Last used", "Created", ""].map((h) => (
                     <th
                       key={h}
                       className="px-4 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap"
@@ -2038,30 +2060,27 @@ function ApiKeysTab({ projectId }: { projectId: string }) {
               </thead>
               <tbody className="divide-y divide-border">
                 {keys.map((k) => (
-                  <tr
-                    key={k.id}
-                    className="hover:bg-muted/30 transition-colors"
-                  >
+                  <tr key={k.id} className="hover:bg-muted/30 transition-colors group">
                     <td className="px-4 py-2.5 font-medium text-foreground">
                       {k.name}
                     </td>
                     <td className="px-4 py-2.5">
-                      <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono text-muted-foreground">
-                        {k.prefix}••••••••
+                      <code className="rounded-md bg-muted border border-border px-2 py-0.5 text-[11px] font-mono text-muted-foreground">
+                        {k.prefix}
                       </code>
                     </td>
-                    <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                    <td className="px-4 py-2.5 text-[12px] text-muted-foreground whitespace-nowrap">
                       {k.lastUsedAt
                         ? new Date(k.lastUsedAt).toLocaleDateString()
                         : "Never"}
                     </td>
-                    <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                    <td className="px-4 py-2.5 text-[12px] text-muted-foreground whitespace-nowrap">
                       {new Date(k.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-2.5">
                       <button
                         onClick={() => revoke.mutate({ id: k.id })}
-                        className="text-xs text-destructive hover:underline"
+                        className="text-[12px] text-destructive/60 hover:text-destructive transition-colors"
                       >
                         Revoke
                       </button>
@@ -2151,12 +2170,12 @@ function SetupTab({ projectId }: { projectId: string }) {
     {
       key: "script",
       title: "1. Add the script tag",
-      desc: "Drop this into your HTML <head>. It auto-tracks page views, clicks, and errors.",
+      desc: "Drop this into your HTML <head>. Copy your token from the API Keys tab above.",
       lang: "html",
       code: `<script
   src="${INGEST}/clarity.js"
   data-project-id="${projectId}"
-  data-api-key="YOUR_API_KEY"
+  data-api-key="clr.<keyId>.<mac>"
   defer
 ></script>`,
     },

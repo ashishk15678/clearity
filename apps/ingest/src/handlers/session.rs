@@ -1,27 +1,27 @@
-use axum::{Json, extract::State, http::HeaderMap};
-use sqlx::PgPool;
+use axum::{extract::State, http::HeaderMap, Json};
 use uuid::Uuid;
 
 use crate::{
     db::validate_api_key,
-    errors::AppResult,
+    errors::{AppError, AppResult},
     models::{OkResponse, SessionFramesPayload, SessionStartPayload},
+    AppState,
 };
 
 // ─── POST /session/start ──────────────────────────────────────────────────────
 
 pub async fn session_start(
-    State(pool): State<PgPool>,
+    State(state): State<AppState>,
     headers: HeaderMap,
     Json(payload): Json<SessionStartPayload>,
 ) -> AppResult<Json<OkResponse>> {
-    let api_key = crate::handlers::track::extract_api_key_pub(&headers)?;
-    validate_api_key(&pool, &api_key, &payload.project_id).await?;
+    let api_key = crate::handlers::track::extract_api_key(&headers)?;
+    let mut conn = state.conn().await.map_err(AppError::Sqlx)?;
+    validate_api_key(&mut conn, &state.key_cache, &api_key, &payload.project_id).await?;
 
     let ua = payload.user_agent.as_deref().unwrap_or("");
-    let ip = crate::handlers::track::extract_ip_pub(&headers);
+    let ip = crate::handlers::track::extract_ip(&headers);
 
-    // Idempotent: reuse the most-recent recording for this visitor
     let existing: Option<String> = sqlx::query_scalar(
         r#"SELECT id FROM session_recording
            WHERE "visitorId" = $1 AND "projectId" = $2
@@ -29,7 +29,7 @@ pub async fn session_start(
     )
     .bind(&payload.visitor_id)
     .bind(&payload.project_id)
-    .fetch_optional(&pool)
+    .fetch_optional(&mut conn)
     .await?;
 
     let id = if let Some(eid) = existing {
@@ -41,7 +41,7 @@ pub async fn session_start(
                (id, "visitorId", "startUrl", "userAgent", "ipAddress",
                 "viewportW", "viewportH", duration, "clickCount", "rageClickCount",
                 "deadClickCount", "errorCount", "createdAt", "updatedAt", "projectId")
-               VALUES ($1, $2, $3, $4, $5, $6, $7, 0, 0, 0, 0, 0, NOW(), NOW(), $8)"#,
+               VALUES ($1,$2,$3,$4,$5,$6,$7,0,0,0,0,0,NOW(),NOW(),$8)"#,
         )
         .bind(&new_id)
         .bind(&payload.visitor_id)
@@ -51,7 +51,7 @@ pub async fn session_start(
         .bind(payload.viewport_w)
         .bind(payload.viewport_h)
         .bind(&payload.project_id)
-        .execute(&pool)
+        .execute(&mut conn)
         .await?;
         new_id
     };
@@ -63,12 +63,13 @@ pub async fn session_start(
 // ─── POST /session/frames ─────────────────────────────────────────────────────
 
 pub async fn session_frames(
-    State(pool): State<PgPool>,
+    State(state): State<AppState>,
     headers: HeaderMap,
     Json(payload): Json<SessionFramesPayload>,
 ) -> AppResult<Json<OkResponse>> {
-    let api_key = crate::handlers::track::extract_api_key_pub(&headers)?;
-    validate_api_key(&pool, &api_key, &payload.project_id).await?;
+    let api_key = crate::handlers::track::extract_api_key(&headers)?;
+    let mut conn = state.conn().await.map_err(AppError::Sqlx)?;
+    validate_api_key(&mut conn, &state.key_cache, &api_key, &payload.project_id).await?;
 
     let frames_str = payload.frames.to_string();
     let frames_count: i32 = match &payload.frames {
@@ -76,7 +77,7 @@ pub async fn session_frames(
         _ => 0,
     };
 
-    // Resolve or lazily create the recording
+    // Find or lazily create the recording
     let existing: Option<String> = sqlx::query_scalar(
         r#"SELECT id FROM session_recording
            WHERE "visitorId" = $1 AND "projectId" = $2
@@ -84,7 +85,7 @@ pub async fn session_frames(
     )
     .bind(&payload.visitor_id)
     .bind(&payload.project_id)
-    .fetch_optional(&pool)
+    .fetch_optional(&mut conn)
     .await?;
 
     let recording_id = if let Some(eid) = existing {
@@ -96,64 +97,61 @@ pub async fn session_frames(
                (id, "visitorId", "startUrl", "userAgent", "ipAddress",
                 duration, "clickCount", "rageClickCount", "deadClickCount",
                 "errorCount", "createdAt", "updatedAt", "projectId")
-               VALUES ($1, $2, '', '', NULL, $3, 0, 0, 0, 0, NOW(), NOW(), $4)"#,
+               VALUES ($1,$2,'','',NULL,$3,0,0,0,0,NOW(),NOW(),$4)"#,
         )
         .bind(&new_id)
         .bind(&payload.visitor_id)
         .bind(payload.duration)
         .bind(&payload.project_id)
-        .execute(&pool)
+        .execute(&mut conn)
         .await?;
         new_id
     };
 
-    // Transaction + advisory lock so concurrent flushes can't race on the sequence number
-    let mut tx = pool.begin().await?;
+    // BEGIN transaction for sequence number + chunk insert (advisory lock)
+    sqlx::query("BEGIN").execute(&mut conn).await?;
 
-    // Row-level lock on the parent recording row
     sqlx::query("SELECT id FROM session_recording WHERE id = $1 FOR UPDATE")
         .bind(&recording_id)
-        .fetch_one(&mut *tx)
+        .fetch_one(&mut conn)
         .await?;
 
-    // Next sequence number — sequence is INT4 in the schema, so decode as i32
     let next_seq: i32 = sqlx::query_scalar(
         r#"SELECT COALESCE(MAX(sequence), -1) + 1
            FROM session_recording_chunk WHERE "recordingId" = $1"#,
     )
     .bind(&recording_id)
-    .fetch_one(&mut *tx)
+    .fetch_one(&mut conn)
     .await?;
 
     let chunk_id = Uuid::new_v4().to_string();
     sqlx::query(
         r#"INSERT INTO session_recording_chunk
            (id, "recordingId", sequence, "framesCount", frames, "createdAt")
-           VALUES ($1, $2, $3, $4, $5, NOW())"#,
+           VALUES ($1,$2,$3,$4,$5,NOW())"#,
     )
     .bind(&chunk_id)
     .bind(&recording_id)
     .bind(next_seq)
     .bind(frames_count)
     .bind(&frames_str)
-    .execute(&mut *tx)
+    .execute(&mut conn)
     .await?;
 
-    let exit_url = payload.exit_url.as_deref().unwrap_or("");
     sqlx::query(
         r#"UPDATE session_recording
-           SET duration  = $1,
-               "exitUrl" = COALESCE(NULLIF($2, ''), "exitUrl"),
+           SET duration    = $1,
+               "exitUrl"   = COALESCE(NULLIF($2,''), "exitUrl"),
                "updatedAt" = NOW()
            WHERE id = $3"#,
     )
     .bind(payload.duration)
-    .bind(exit_url)
+    .bind(payload.exit_url.as_deref().unwrap_or(""))
     .bind(&recording_id)
-    .execute(&mut *tx)
+    .execute(&mut conn)
     .await?;
 
-    tx.commit().await?;
+    sqlx::query("COMMIT").execute(&mut conn).await?;
 
     tracing::debug!(
         visitor   = %payload.visitor_id,
@@ -162,5 +160,8 @@ pub async fn session_frames(
         frames    = frames_count,
         "frames flushed"
     );
-    Ok(Json(OkResponse { ok: true, id: chunk_id }))
+    Ok(Json(OkResponse {
+        ok: true,
+        id: chunk_id,
+    }))
 }

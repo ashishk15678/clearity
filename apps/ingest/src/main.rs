@@ -2,15 +2,18 @@ mod db;
 mod errors;
 mod handlers;
 mod models;
+mod workers;
 
 use axum::{
-    http::{HeaderName, Method},
+    http::Method,
     routing::{get, options, post},
     Router,
 };
+use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 
+use db::ApiKeyCache;
 use handlers::{
     error::track_error,
     health::health,
@@ -18,6 +21,21 @@ use handlers::{
     session::{session_frames, session_start},
     track::{track_event, track_pageview},
 };
+use workers::{EventJob, PageViewJob};
+
+#[derive(Clone)]
+pub struct AppState {
+    pub db_url: Arc<str>,
+    pub key_cache: ApiKeyCache,
+    pub event_tx: tokio::sync::mpsc::UnboundedSender<EventJob>,
+    pub pv_tx: tokio::sync::mpsc::UnboundedSender<PageViewJob>,
+}
+
+impl AppState {
+    pub async fn conn(&self) -> Result<sqlx::postgres::PgConnection, sqlx::Error> {
+        db::connect(&self.db_url).await
+    }
+}
 
 async fn preflight() -> axum::http::StatusCode {
     axum::http::StatusCode::OK
@@ -25,35 +43,45 @@ async fn preflight() -> axum::http::StatusCode {
 
 #[tokio::main]
 async fn main() {
-    dotenvy::from_path("apps/web/.env").ok(); // monorepo root
-    dotenvy::from_path("../web/.env").ok(); // apps/ingest/
-    dotenvy::from_path(".env").ok(); // local override / production
-    dotenvy::dotenv().ok(); // fallback: nearest .env
+    dotenvy::from_path("apps/web/.env").ok();
+    dotenvy::from_path("../web/.env").ok();
+    dotenvy::from_path(".env").ok();
+    dotenvy::dotenv().ok();
 
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "ingest=info,tower_http=debug".into()),
+                .unwrap_or_else(|_| "ingest=debug,tower_http=info".into()),
         )
         .init();
 
-    let database_url = std::env::var("DATABASE_URL")
-        .expect("DATABASE_URL must be set (check apps/web/.env or apps/ingest/.env)");
+    let database_url: Arc<str> = std::env::var("DATABASE_URL")
+        .expect("DATABASE_URL must be set")
+        .into();
 
-    tracing::info!("Connecting to database…");
-    let pool = db::create_pool(&database_url).await;
-    tracing::info!("Database ready");
+    // Smoke-test the connection at startup so a bad URL fails fast.
+    tracing::info!("Testing database connection…");
+    db::connect(&database_url)
+        .await
+        .expect("Failed to connect to Neon PostgreSQL — check DATABASE_URL");
+    tracing::info!("Database reachable");
+
+    let (event_tx, event_rx) = tokio::sync::mpsc::unbounded_channel::<EventJob>();
+    let (pv_tx, pv_rx) = tokio::sync::mpsc::unbounded_channel::<PageViewJob>();
+
+    tokio::spawn(workers::event_worker(Arc::clone(&database_url), event_rx));
+    tokio::spawn(workers::pageview_worker(Arc::clone(&database_url), pv_rx));
+
+    let state = AppState {
+        db_url: database_url,
+        key_cache: ApiKeyCache::new(),
+        event_tx,
+        pv_tx,
+    };
 
     let cors = CorsLayer::new()
         .allow_origin(tower_http::cors::Any)
         .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
-        // .allow_headers([
-        //     HeaderName::from_static("content-type"),
-        //     HeaderName::from_static("x-api-key"),
-        //     HeaderName::from_static("authorization"),
-        //     HeaderName::from_static("x-forwarded-for"),
-        //     HeaderName::from_static("x-real-ip"),
-        // ])
         .allow_headers(tower_http::cors::Any)
         .max_age(std::time::Duration::from_secs(86400));
 
@@ -69,7 +97,7 @@ async fn main() {
         .route("/reports/pageviews", get(pageviews_report))
         .layer(cors)
         .layer(TraceLayer::new_for_http())
-        .with_state(pool);
+        .with_state(state);
 
     let port = std::env::var("PORT").unwrap_or_else(|_| "4000".to_string());
     let addr = format!("0.0.0.0:{port}");

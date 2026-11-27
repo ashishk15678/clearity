@@ -1,2 +1,5 @@
 I tried to convert this into workspace but it turns out i need internet , more than i have right now
 so continuing with other tasks and will complete this later
+
+what we basically want our api key to look like (which passes from the sdk to ingest) is like this
+sha256{base64encoded{api_key:project_id}}

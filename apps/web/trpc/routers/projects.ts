@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "@/trpc/init";
 import { prisma } from "@/lib/prisma";
 import { nanoid } from "@/lib/nanoid";
+import { createHash, createHmac, randomUUID } from "crypto";
 import { requireOrgMember, requireProjectAccess } from "@/lib/org-access";
 
 export const projectsRouter = createTRPCRouter({
@@ -14,10 +15,10 @@ export const projectsRouter = createTRPCRouter({
       const orgFilter = input?.organizationId
         ? { organizationId: input.organizationId }
         : {
-            organization: {
-              members: { some: { userId: ctx.user.id } },
-            },
-          };
+          organization: {
+            members: { some: { userId: ctx.user.id } },
+          },
+        };
 
       return prisma.project.findMany({
         where: orgFilter,
@@ -149,37 +150,82 @@ export const projectsRouter = createTRPCRouter({
     .input(z.object({ projectId: z.string(), name: z.string().min(1).max(64) }))
     .mutation(async ({ ctx, input }) => {
       await requireProjectAccess(ctx.user.id, input.projectId, "ADMIN");
-      const raw = `clr_live_${nanoid(32)}`;
-      return prisma.apiKey.create({
-        data: {
-          name: input.name,
-          key: raw,
-          prefix: "clr_live_",
-          projectId: input.projectId,
-        },
-      });
+
+      // ── Token design ────────────────────────────────────────────────────────
+      // Token: clr.<keyId>.<hmac_sha256(secretHash, projectId)>
+      //
+      // keyId      — 8-char unique ID embedded in the token so ingest can do
+      //              a single PK lookup (no full-table scan on the token itself)
+      // secretHash — SHA-256(rawSecret) stored in DB, never transmitted again
+      // projectId  — the HMAC message, binding the token to exactly one project
+      //
+      // The token is static (browser SDKs can't recompute HMAC without the
+      // secret, and putting the secret in the browser defeats the purpose).
+      // Security comes from the token being unguessable without secretHash.
+      // Revocation is instant via revokedAt — no replay window needed.
+      //
+      // On ingest: parse keyId → one indexed PK lookup → recompute HMAC with
+      // stored secretHash → constant-time compare. Cache (keyId, projectId)
+      // for 5 min so repeated SDK calls don't hit the DB every time.
+
+      const keyId = nanoid(8);
+      const rawSecret = nanoid(40);
+      const secretHash = createHash("sha256").update(rawSecret).digest("hex");
+      const mac = createHmac("sha256", secretHash).update(input.projectId).digest("hex");
+      const token = `clr.${keyId}.${mac}`;
+      const prefix = `clr.${keyId}`;
+
+      await prisma.$executeRaw`
+        INSERT INTO api_key (id, name, "keyId", "secretHash", prefix, "projectId", "createdAt")
+        VALUES (
+          ${randomUUID()},
+          ${input.name},
+          ${keyId},
+          ${secretHash},
+          ${prefix},
+          ${input.projectId},
+          NOW()
+        )
+      `;
+
+      // token is returned once and never stored — the DB only holds secretHash
+      return { keyId, token, prefix };
     }),
 
   listApiKeys: protectedProcedure
     .input(z.object({ projectId: z.string() }))
     .query(async ({ ctx, input }) => {
       await requireProjectAccess(ctx.user.id, input.projectId);
-      return prisma.apiKey.findMany({
-        where: { projectId: input.projectId, revokedAt: null },
-        orderBy: { createdAt: "desc" },
-      });
+      // Use raw query since schema is ahead of generated client
+      const rows = await prisma.$queryRaw<{
+        id: string;
+        name: string;
+        keyId: string;
+        prefix: string;
+        lastUsedAt: Date | null;
+        createdAt: Date;
+      }[]>`
+        SELECT id, name, "keyId", prefix, "lastUsedAt", "createdAt"
+        FROM api_key
+        WHERE "projectId" = ${input.projectId}
+          AND "revokedAt" IS NULL
+        ORDER BY "createdAt" DESC
+      `;
+      return rows;
     }),
 
   revokeApiKey: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const key = await prisma.apiKey.findUnique({ where: { id: input.id } });
-      if (!key) throw new TRPCError({ code: "NOT_FOUND" });
-      await requireProjectAccess(ctx.user.id, key.projectId, "ADMIN");
-      return prisma.apiKey.update({
-        where: { id: input.id },
-        data: { revokedAt: new Date() },
-      });
+      const rows = await prisma.$queryRaw<{ projectId: string }[]>`
+        SELECT "projectId" FROM api_key WHERE id = ${input.id} LIMIT 1
+      `;
+      if (!rows.length) throw new TRPCError({ code: "NOT_FOUND" });
+      await requireProjectAccess(ctx.user.id, rows[0]!.projectId, "ADMIN");
+      await prisma.$executeRaw`
+        UPDATE api_key SET "revokedAt" = NOW() WHERE id = ${input.id}
+      `;
+      return { success: true };
     }),
 });
 

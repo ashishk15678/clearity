@@ -227,8 +227,12 @@ model Project {
 model ApiKey {
   id         String    @id @default(uuid())
   name       String
-  /// Store SHA-256 hash of the key; keep `prefix` for UI display (e.g. "pk_live_1234...")
-  key        String    @unique
+  /// Short opaque identifier embedded in the token (clr.<keyId>.<hmac>).
+  /// Lets ingest find the secret with a single PK lookup — no full token scan.
+  keyId      String    @unique
+  /// SHA-256(rawSecret) stored in DB. The raw 32-byte secret is shown once.
+  secretHash String
+  /// Display prefix shown in the UI — non-secret, e.g. "clr.a1b2c3d4"
   prefix     String
   lastUsedAt DateTime?
   expiresAt  DateTime?
