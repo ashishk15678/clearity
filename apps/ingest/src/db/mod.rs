@@ -45,12 +45,17 @@ impl ApiKeyCache {
         if map.len() > 10_000 {
             map.retain(|_, v| v.inserted_at.elapsed() < CACHE_TTL);
         }
-        map.insert(ck, CacheEntry { inserted_at: Instant::now() });
+        map.insert(
+            ck,
+            CacheEntry {
+                inserted_at: Instant::now(),
+            },
+        );
     }
 }
 
 struct ParsedToken<'a> {
-    key_id:  &'a str,
+    key_id: &'a str,
     mac_hex: &'a str,
 }
 
@@ -59,7 +64,7 @@ fn parse_token(raw: &str) -> Option<ParsedToken<'_>> {
     let rest = raw.strip_prefix("clr.")?;
     let dot = rest.find('.')?;
     Some(ParsedToken {
-        key_id:  &rest[..dot],
+        key_id: &rest[..dot],
         mac_hex: &rest[dot + 1..],
     })
 }
@@ -73,9 +78,7 @@ pub async fn validate_api_key(
     project_id: &str,
 ) -> Result<(), crate::errors::AppError> {
     let parsed = parse_token(raw_token).ok_or_else(|| {
-        crate::errors::AppError::Unauthorized(
-            "Malformed API key — expected clr.<id>.<mac>".into(),
-        )
+        crate::errors::AppError::Unauthorized("Malformed API key — expected clr.<id>.<mac>".into())
     })?;
 
     // 1. Cache hit — O(1), no DB, no crypto.
@@ -130,12 +133,12 @@ pub async fn validate_api_key(
     }
     let project_id = project_id.trim();
 
-    let mut mac = HmacSha256::new_from_slice(secret_hash.as_bytes())
-        .expect("HMAC accepts any key length");
+    let mut mac =
+        HmacSha256::new_from_slice(secret_hash.as_bytes()).expect("HMAC accepts any key length");
     mac.update(project_id.as_bytes());
     let expected = hex::encode(mac.finalize().into_bytes());
 
-    let token_bytes    = hex_to_bytes(parsed.mac_hex);
+    let token_bytes = hex_to_bytes(parsed.mac_hex);
     let expected_bytes = hex_to_bytes(&expected);
 
     tracing::debug!(
@@ -147,8 +150,7 @@ pub async fn validate_api_key(
         "HMAC check"
     );
 
-    if token_bytes.len() != expected_bytes.len()
-        || !constant_time_eq(&token_bytes, &expected_bytes)
+    if token_bytes.len() != expected_bytes.len() || !constant_time_eq(&token_bytes, &expected_bytes)
     {
         tracing::warn!(
             key_id       = %parsed.key_id,
@@ -172,11 +174,10 @@ pub async fn project_exists(
     conn: &mut PgConnection,
     project_id: &str,
 ) -> Result<(), crate::errors::AppError> {
-    let exists: bool =
-        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM project WHERE id = $1)")
-            .bind(project_id)
-            .fetch_one(&mut *conn)
-            .await?;
+    let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM project WHERE id = $1)")
+        .bind(project_id)
+        .fetch_one(&mut *conn)
+        .await?;
     if !exists {
         return Err(crate::errors::AppError::NotFound(format!(
             "Project '{project_id}' not found"
@@ -195,6 +196,8 @@ fn hex_to_bytes(hex: &str) -> Vec<u8> {
 }
 
 fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
-    if a.len() != b.len() { return false; }
+    if a.len() != b.len() {
+        return false;
+    }
     a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
 }

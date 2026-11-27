@@ -25,7 +25,10 @@ impl IntoResponse for AppError {
         let (status, message) = match self {
             AppError::Sqlx(e) => {
                 tracing::error!("Database error: {e}");
-                (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string())
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Internal server error".to_string(),
+                )
             }
             AppError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
             AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg),

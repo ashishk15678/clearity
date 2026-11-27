@@ -1,14 +1,17 @@
-use axum::{Json, extract::{Query, State}};
+use axum::{
+    extract::{Query, State},
+    Json,
+};
 use sqlx::Row;
 
 use crate::{
-    AppState,
     db::project_exists,
     errors::{AppError, AppResult},
     models::{
-        EventRow, EventSummaryRow, EventsReport,
-        PageViewRow, PageViewSummaryRow, PageViewsReport, ReportQuery,
+        EventRow, EventSummaryRow, EventsReport, PageViewRow, PageViewSummaryRow, PageViewsReport,
+        ReportQuery,
     },
+    AppState,
 };
 
 pub async fn events_report(
@@ -40,10 +43,13 @@ pub async fn events_report(
     .fetch_all(&mut conn)
     .await?;
 
-    let by_name = by_name_rows.iter().map(|r| EventSummaryRow {
-        name:  r.get("name"),
-        count: r.get("count"),
-    }).collect();
+    let by_name = by_name_rows
+        .iter()
+        .map(|r| EventSummaryRow {
+            name: r.get("name"),
+            count: r.get("count"),
+        })
+        .collect();
 
     let recent_rows = sqlx::query(
         r#"SELECT id, type, name, properties, url, "visitorId",
@@ -59,18 +65,27 @@ pub async fn events_report(
     .fetch_all(&mut conn)
     .await?;
 
-    let recent = recent_rows.iter().map(|r| EventRow {
-        id:         r.get("id"),
-        r#type:     r.get("type"),
-        name:       r.get("name"),
-        properties: r.get("properties"),
-        url:        r.get("url"),
-        visitor_id: r.get("visitorId"),
-        created_at: r.get::<Option<String>, _>("created_at").unwrap_or_default(),
-        project_id: r.get("projectId"),
-    }).collect();
+    let recent = recent_rows
+        .iter()
+        .map(|r| EventRow {
+            id: r.get("id"),
+            r#type: r.get("type"),
+            name: r.get("name"),
+            properties: r.get("properties"),
+            url: r.get("url"),
+            visitor_id: r.get("visitorId"),
+            created_at: r.get::<Option<String>, _>("created_at").unwrap_or_default(),
+            project_id: r.get("projectId"),
+        })
+        .collect();
 
-    Ok(Json(EventsReport { project_id: q.project_id, days: q.days, total, by_name, recent }))
+    Ok(Json(EventsReport {
+        project_id: q.project_id,
+        days: q.days,
+        total,
+        by_name,
+        recent,
+    }))
 }
 
 pub async fn pageviews_report(
@@ -102,10 +117,13 @@ pub async fn pageviews_report(
     .fetch_all(&mut conn)
     .await?;
 
-    let top_pages = top_rows.iter().map(|r| PageViewSummaryRow {
-        url:   r.get("url"),
-        count: r.get("count"),
-    }).collect();
+    let top_pages = top_rows
+        .iter()
+        .map(|r| PageViewSummaryRow {
+            url: r.get("url"),
+            count: r.get("count"),
+        })
+        .collect();
 
     let recent_rows = sqlx::query(
         r#"SELECT id, url, path, referrer, "visitorId", duration,
@@ -121,16 +139,25 @@ pub async fn pageviews_report(
     .fetch_all(&mut conn)
     .await?;
 
-    let recent = recent_rows.iter().map(|r| PageViewRow {
-        id:         r.get("id"),
-        url:        r.get("url"),
-        path:       r.get("path"),
-        referrer:   r.get("referrer"),
-        visitor_id: r.get("visitorId"),
-        duration:   r.get("duration"),
-        created_at: r.get::<Option<String>, _>("created_at").unwrap_or_default(),
-        project_id: r.get("projectId"),
-    }).collect();
+    let recent = recent_rows
+        .iter()
+        .map(|r| PageViewRow {
+            id: r.get("id"),
+            url: r.get("url"),
+            path: r.get("path"),
+            referrer: r.get("referrer"),
+            visitor_id: r.get("visitorId"),
+            duration: r.get("duration"),
+            created_at: r.get::<Option<String>, _>("created_at").unwrap_or_default(),
+            project_id: r.get("projectId"),
+        })
+        .collect();
 
-    Ok(Json(PageViewsReport { project_id: q.project_id, days: q.days, total, top_pages, recent }))
+    Ok(Json(PageViewsReport {
+        project_id: q.project_id,
+        days: q.days,
+        total,
+        top_pages,
+        recent,
+    }))
 }
